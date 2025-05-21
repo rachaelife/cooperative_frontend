@@ -1,0 +1,60 @@
+@tailwind  base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+
+  background-color: rgb(255, 255, 255);
+
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+::-webkit-scrollbar {
+  display: none;
+}
+
+.layoutSection {
+  display: grid;
+  grid-template-columns: 20% 80%;
+}
+
+.text-primary {
+  color: rgb(122, 158, 150);
+}
+
+.bg-primary {
+  background-color: rgb(122, 158, 150);
+}
+
+.bg-blur {
+  background-color: rgba(238, 253, 252, 0.8);
+  backdrop-filter: blur(20px);
+}
+
+/* .second{
+  background-image: url("/public/3d-modeling-3117625_1920.jpg");
+  background-position: center;
+  background-size: cover;
+  overflow: hidden;
+
+} */
+.hero{
+  background-image: url("/money-2696228_1280.jpg");
+  background-position: center;
+  background-size: cover;
+  overflow: hidden;
+}
+.heros{
+  background-color: rgba(0,0,0,0.7);
+}
+
+ aside{
+  /* background-color: rgba(6, 6, 147, 0.768); */
+  box-shadow: rgba(0, 0, 0, 0.9) 0px 5px 15px;;
+ }
