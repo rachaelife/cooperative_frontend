@@ -1,6 +1,6 @@
 import DashboardLayout from "../components/_layout";
 import { Link, useNavigate } from "react-router-dom";
-import { Button, Input, Modal, Select, Table } from "antd";
+import { Button, Input, Modal, Select, Table, Popconfirm } from "antd";
 import { FiSearch } from "react-icons/fi";
 import { BiUserPin } from "react-icons/bi";
 import { Fade, Zoom } from "react-awesome-reveal";
@@ -20,16 +20,13 @@ function Member() {
     address: "",
     referral: ""
   })
+  const {fullname, gender, mobile, email, address, referral} = member
 
   const handleSubmit = async (e) =>{
     e.preventDefault()
-    try {
-      await memberServices.Newmember()
-      toast.success("successful registration")
-    } catch (error) {
-      toast.error("failed to register new member")
-      console.log(error)
-    }
+    
+     const data =  await memberServices.Newmember(member.fullname, member.gender, member.mobile, member.email, member.address, member.referral)
+   
   }
 
 
@@ -52,9 +49,9 @@ function Member() {
 
   const columns = [
     {
-      title: "ID",
-      dataIndex: "id",
-      key: "id",
+      title: "S/NO",
+      dataIndex: "no",
+      key: "no",
     },
     {
       title: "Full Name",
@@ -112,6 +109,21 @@ function Member() {
   }
 
 
+  const handleDelete = async (id) => {
+  try {
+    await memberServices.deleteuser(id); 
+    toast.success("Member deleted successfully");
+    getAllmembers(); // Refresh the table
+  } catch (error) {
+    console.error(error);
+    toast.error("Failed to delete member");
+  }
+};
+
+ 
+
+
+
  
 
   return (
@@ -126,6 +138,8 @@ function Member() {
           <Button onClick={openModal}>Add new member </Button>
      
 
+     {/* ADDING NEW MEMBER */}
+
         <Modal
           footer={null}
           open={open}
@@ -133,7 +147,7 @@ function Member() {
             setOpen(false);
           }}
         >
-          <form action="">
+          <form action="" onSubmit={handleSubmit}>
             <h1 className="text-center text-3xl font-bold text-slate-300">
               Registration Form{" "}
             </h1>
@@ -209,7 +223,7 @@ function Member() {
 
             <div className=" flex flex-col gap-1 my-3">
                 
-                <input type="submit" onClick={handleSubmit} placeholder="Login" className="cursor-pointer h-[50px] rounded-md border border-slate-300 px-3 bg-blue-900 text-white "  />
+                <input type="submit" placeholder="Login" className="cursor-pointer h-[50px] rounded-md border border-slate-300 px-3 bg-blue-900 text-white "  />
             </div>
           </form>
         </Modal>
@@ -238,15 +252,27 @@ function Member() {
 
       <Table columns={columns} dataSource={members.map((member, i)=>(
         {
-      
+      no: i+1,
       fullname: member.fullname,
       gender: member.gender,
       phonenumber: member.mobile,
       email:member.email,
       address: member.address,
       referral: member.referral,
-      action: <Button onClick={()=>gotoProfile(member.user_id)}>View Profile</Button>
-    
+      action: (
+      <div className="flex gap-2">
+      <Button onClick={()=>gotoProfile(member.user_id)}>View Profile</Button>
+
+      <Popconfirm
+          title="Are you sure you want to delete this member?"
+          onConfirm={() => handleDelete(member.user_id)}
+          okText="Yes"
+          cancelText="No"
+        >
+          <Button danger>Delete</Button>
+        </Popconfirm>
+         </div>
+        )
     }
       ))} />
     </DashboardLayout>
