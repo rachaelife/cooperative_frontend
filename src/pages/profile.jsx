@@ -6,11 +6,16 @@ import { AutoComplete, Button, Input, Modal, Select, Table, Tabs } from "antd";
 import Savings from "../components/savings";
 import Loan from "../components/loans";
 import { useParams } from "react-router-dom";
-import { memberServices } from "../services/api";
+import { memberServices, savingServices } from "../services/api";
 import { toast } from "sonner";
+import { BsCash } from "react-icons/bs";
+import { MdOutlineSavings } from "react-icons/md";
 
 function Profile() {
   const [open, setOpen] = useState(false);
+  const [savings, setSavings] = useState([])
+
+  const [totalSavings, setTotalSavings] = useState(0)
 
   const openModal = () => {
     setOpen(true);
@@ -40,6 +45,10 @@ function Profile() {
 
   const getUserProfile = async () => {
     const res = await memberServices.getUser(id);
+    const data = await savingServices.getUserSavings(id)
+   setTotalSavings(data.total)
+   console.log(data.total)
+    setSavings(data.data)
     setmember({
       fullname: res[0].fullname,
       gender: res[0].gender,
@@ -70,7 +79,7 @@ function Profile() {
     {
       key: "1",
       label: "Saving",
-      children: <Savings />,
+      children: <Savings items={savings} />,
     },
     {
       key: "2",
@@ -81,48 +90,63 @@ function Profile() {
 
   return (
     <DashboardLayout>
-      <nav className="bg-green-900 mb-5 w-[100%] h-[60px] flex items-center justify-center ">
-        <h1 className="font-bold text-3xl  text-white ">Member profile</h1>
+      <nav className=" mb-5 w-[100%] h-[60px] flex items-center justify-center ">
+        <h1 className="font-bold text-3xl ">Member's profile</h1>
       </nav>
-      <div className="flex gap-10 items-center mb-10">
-        {previewUrl ? (
-          <div className="flex flex-col justify-center items-center w-[150px] h-[150px] gap-3 cursor-pointer">
-            <img src={URL.createObjectURL(previewUrl)} alt="" />
-          </div>
-        ) : (
-          <div className="flex flex-col gap-2 ">
-            <label
-              htmlFor="file"
-              className="flex flex-col justify-center items-center w-[150px] h-[150px] gap-3 cursor-pointer rounded-full bg-slate-300 overflow-hidden"
-            >
-              <BiUserPin />
-              <span>upload image</span>
-            </label>
-            <input
-              type="file"
-              id="file"
-              className="hidden rounded-full "
-              onChange={getImagePreview}
-            />
-          </div>
-        )}
 
-        <div className="">
-          <form action="">
-            <label
-              htmlFor="upload"
-              className="border border-slate-300 p-2 rounded-md cursor-pointer"
-            >
-              <span>Upload new Passport</span>
-            </label>
-            <Input
-              type="file"
-              className="hidden"
-              id="upload"
-              onChange={(e) => setpreviewUrl(e.target.files[0])}
-            />
-          </form>
+      <div className="flex justify-between items-center flex-wrap">
+        <div className="flex gap-10 items-center mb-10">
+          {previewUrl ? (
+            <div className="flex flex-col justify-center items-center w-[150px] h-[150px] gap-3 cursor-pointer">
+              <img src={URL.createObjectURL(previewUrl)} alt="" />
+            </div>
+          ) : (
+            <div className="flex flex-col gap-2 ">
+              <label
+                htmlFor="file"
+                className="flex flex-col justify-center items-center w-[150px] h-[150px] gap-3 cursor-pointer rounded-full bg-slate-300 overflow-hidden"
+              >
+                <BiUserPin />
+                <span>upload image</span>
+              </label>
+              <input
+                type="file"
+                id="file"
+                className="hidden rounded-full "
+                onChange={getImagePreview}
+              />
+            </div>
+          )}
+
+          <div className="">
+            <form action="">
+              <label
+                htmlFor="upload"
+                className="border border-slate-300 p-2 rounded-md cursor-pointer"
+              >
+                <span>Upload new Passport</span>
+              </label>
+              <Input
+                type="file"
+                className="hidden"
+                id="upload"
+                onChange={(e) => setpreviewUrl(e.target.files[0])}
+              />
+            </form>
+          </div>
         </div>
+
+        <div className="flex items-center gap-3">
+            <div className="w-[250px] h-[150px] rounded-md border border-gray-300 p-5 ">
+              <div className="flex flex-col gap-4">
+                <MdOutlineSavings size={50} className="text-gray-400"/>
+                <h1>Total Savings</h1>
+              </div>
+
+              <h1 className="text-2xl font-bold">&#8358;{Intl.NumberFormat().format(totalSavings.total_savings)}</h1>
+            </div>
+        </div>  
+
       </div>
 
       {/* PROFILE INFORMATION */}
@@ -211,6 +235,8 @@ function Profile() {
             </Modal>
           
         </div>
+
+        
 
         <div className="flex justify-between items-center m-5 flex-wrap">
           <div>

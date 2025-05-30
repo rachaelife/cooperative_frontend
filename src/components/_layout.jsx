@@ -44,7 +44,7 @@ const navigate = useNavigate()
 
                     <Link to={"/loan"} className="flex items-center gap-5 text-2xl text-white py-2 px-5 rounded-xl hover:bg-slate-300 hover:text-white"><MdSavings /> <span>Loan</span></Link>
 
-                    <Link to={"/"} className="flex items-center gap-5 text-2xl text-white py-2 px-5 rounded-xl hover:bg-slate-700 hover:text-white"><FaArrowsDownToPeople /> <span>Shares</span></Link>
+                    <Link to={"/shares"} className="flex items-center gap-5 text-2xl text-white py-2 px-5 rounded-xl hover:bg-slate-700 hover:text-white"><FaArrowsDownToPeople /> <span>Shares</span></Link>
 
                     <Link to={"/building"} className="flex items-center gap-5 text-2xl text-white py-2 px-5 rounded-xl hover:bg-slate-700 hover:text-white"><MdPropaneTank /> <span>Building & Development</span></Link>
 

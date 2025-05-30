@@ -1,14 +1,39 @@
 import { Table } from 'antd'
 import React from 'react'
+import { BiTrash } from 'react-icons/bi'
+import moment from "moment"
 
-const Savings = () => {
+const Savings = ({items}) => {
 
     
     const columns = [
+
+      {
+        title: "S/NO",
+        dataIndex: "no",
+        key: "no"
+      },
+
         {
-          title: "Date",
-          dataIndex: "date",
-          key: "date",
+          title: "Full Name",
+          dataIndex: "fullname",
+          key: "fullname",
+        },
+        {
+          title: "Mobile",
+          dataIndex: "mobile",
+          key: "mobile",
+        },
+           {
+          title: "gender",
+          dataIndex: "gender",
+          key: "gender",
+        },
+    
+        {
+          title: "Amount",
+          dataIndex: "amount",
+          key: "amount",
         },
   
         {
@@ -18,82 +43,46 @@ const Savings = () => {
         },
   
         {
-          title: "Category",
+          title: "Payment Type",
           dataIndex: "Category",
           key: "category",
         },
   
-        {
-          title: "Amount",
-          dataIndex: "amount",
-          key: "amount",
+            {
+          title: "Date",
+          dataIndex: "date",
+          key: "date",
         },
   
-        {
-          title: "Balance",
-          dataIndex: "balance",
-          key: "balance",
-        },
-  
-        
-  
-        
       ]
-  
-      const data = [
-        {
-            date: '29-01-2025',
-            Month: "january",
-            Category: "Bank transfer",
-            amount: "100,000",
-            balance:"100,000"
-          },
-  
-          {
-            date: '29-02-2025',
-            Month: "February",
-            Category: "Bank transfer",
-            amount: "100,000",
-            balance:"200,000"
-          },
-  
-          {
-            date: '29-03-2025',
-            Month: "march",
-            Category: "Bank transfer",
-            amount: "100,000",
-            balance:"300,000"
-          },
-  
-          {
-            date: '29-03-2025',
-            Month: "january",
-            Category: "Bank transfer",
-            amount: "100,000",
-            balance:"100,000"
-          },
-  
-          {
-            date: '29-03-2025',
-            Month: "january",
-            Category: "Bank transfer",
-            amount: "100,000",
-            balance:"100,000"
-          },
-  
-          {
-            date: '29-03-2025',
-            Month: "january",
-            Category: "Bank transfer",
-            amount: "100,000",
-            balance:"100,000"
-          },
-        ]
+
   
        
 
   return (
-    <Table columns={columns} dataSource={data} />
+    <>
+    {
+      items.length > 0 ? 
+      <Table columns={columns} dataSource={items.map((item, i)=>(
+        {
+            no: i+1,
+            fullname: item.fullname,
+            gender:item.gender,
+            mobile: item.mobile,
+            date: moment(item.createdAt).format("MM/DD/YYYY hh:MM"),
+            Month: item.month_paid,
+            Category: item.payment_type,
+            amount: <p>&#8358;{Intl.NumberFormat().format(item.amount)}</p> ,
+        }
+      ))} />
+      :
+      <div className='flex justify-center items-center flex-col gag-3 my-10'>
+          <BiTrash size={50} className='text-gray-400'/>
+        <h1 className='text-3xl text-gray-400'>No savings found</h1>
+      </div>
+    }
+    
+    </>
   )
 }
 

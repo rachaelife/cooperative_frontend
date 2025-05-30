@@ -10,6 +10,7 @@ import Building from "./pages/building"
 import Adminpage from "./pages/admin"
 import { Navigate } from "react-router-dom"
 import DashboardLayout from "./components/_layout"
+import Shares from "./pages/shares"
 
 
 
@@ -26,6 +27,7 @@ function App() {
         <Route path="loan" element={<Loan />} />
         <Route path="profile/:id" element={<Profile />} />
         <Route path="building" element={<Building />} />
+        <Route path="/shares" element={<Shares/>}/>
         <Route path="admin" element={<Adminpage/>}/>
 
 

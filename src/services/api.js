@@ -191,7 +191,7 @@ export const savingServices = {
     try {
       const res = await api.post("/new/savings", { user_id, amount, month_paid, payment_type, savings_type });
       toast.success(res.data.message);
-       return res.data;
+      //  return res.data;
     } catch (error) {
       toast.error(error.response.data.message);
     }
@@ -200,6 +200,37 @@ export const savingServices = {
     getAllsavings: async () => {
     try {
       const res = await api.get("/savings");
+      return res.data.message;
+    } catch (error) {
+      toast.error(error.response.data.message);
+    }
+  },
+
+
+  getUserSavings: async(id)=>{
+    try {
+
+      const res = await api.get(`/user/savings/${id}`)
+      return {data: res.data.message, total:res.data.total}
+      
+    } catch (error) {
+      toast.error(error.response.data.message)
+    }
+  },
+
+  addshares: async (user_id, amount, month_paid, payment_type, savings_type) => {
+    try {
+      const res = await api.post("/new/savings", { user_id, amount, month_paid, payment_type, savings_type });
+      toast.success(res.data.message);
+      //  return res.data;
+    } catch (error) {
+      toast.error(error.response.data.message);
+    }
+  },
+
+   getAllshares: async () => {
+    try {
+      const res = await api.get("/shares");
       return res.data.message;
     } catch (error) {
       toast.error(error.response.data.message);

@@ -1,17 +1,15 @@
-import { Link } from "react-router-dom";
-import DashboardLayout from "../components/_layout";
-import { AutoComplete, Button, Input, InputNumber, Modal, Select, Table } from "antd";
-import { CgAdd } from "react-icons/cg";
-import { useEffect, useState } from "react";
-import {months} from "../months"
-import { memberServices, savingServices } from "../services/api";
-import { toast } from "sonner";
+import React, { useEffect, useState } from 'react';
+import DashboardLayout from '../components/_layout';
+import { AutoComplete, Button, Input, Modal, Select, Table } from 'antd';
+import { CgAdd } from 'react-icons/cg';
+import { months } from '../months';
+import { memberServices } from '../services/api';
+import { toast } from 'sonner';
+
+const Shares = () => {
 
 
-function Savings() {
-
-
-  const [open, setOPen] = useState(false)
+     const [open, setOPen] = useState(false)
    const [members, setmembers] = useState([]);
 
   const columns = [
@@ -69,10 +67,10 @@ function Savings() {
     // },
   ];
  
-    const [savings, setSavings] = useState([]);
+    const [shares, setShares] = useState([]);
     const [member, setMember] = useState("")
 
-  const [newSavings, setNewSavings] = useState({
+  const [newShares, setNewShares] = useState({
     user_id:"",
     amount: "",
     month_paid: "",
@@ -91,10 +89,10 @@ function Savings() {
   }, []);
 
 
-  const fetchSavings = async () => {
+  const fetchShares = async () => {
     try {
-      const res = await savingServices.getAllsavings();
-      setSavings(res); // Make sure your backend returns an array
+      const res = await savingServices.getAllshares();
+      setShares(res); // Make sure your backend returns an array
       console.log(res)
     } catch (error) {
       toast.error("Error fetching savings");
@@ -107,36 +105,39 @@ function Savings() {
     e.preventDefault();
     
     try {
-      await savingServices.addsavings(newSavings.user_id, newSavings.amount, newSavings.month_paid, newSavings.payment_type, newSavings.savings_type );
+      await savingServices.addshares(newShares.user_id, newShares.amount, newShares.month_paid, newShares.payment_type, newShares.savings_type );
    
-      setNewSavings({
+      setNewShares({
         user_id: "",
         amount: "",
         month_paid: "",
         payment_type: "",
         savings_type: "",
       });
-      fetchSavings();
+      fetchShares();
     } catch (error) {
-      toast.error("Failed to add savings");
+      toast.error("Failed to add shares");
     }
   };
 
   useEffect(() => {
-    fetchSavings();
+    fetchShares();
   }, []);
 
 
+    return(
 
-  return (
+    <>
     <DashboardLayout>
-      <div className="flex justify-between items-center ">
-        <h1 className="my-5 text-3xl font-bold">Savings</h1>
 
-        <Button onClick={()=>setOPen(true)}><CgAdd /> New Savings</Button>
+        
+      <div className="flex justify-between items-center ">
+        <h1 className="my-5 text-3xl font-bold">Shares</h1>
+
+        <Button onClick={()=>setOPen(true)}><CgAdd /> New Shares</Button>
         <Modal open={open} footer={null} onCancel={()=>setOPen(false)}>
           <div className="mb-10">
-              <h1 className="text-2xl text-slate-300">Saving Form</h1>
+              <h1 className="text-2xl text-slate-300">Shares Form</h1>
           </div>
 
             <form className="" onSubmit={handleSubmit}>
@@ -150,10 +151,7 @@ function Savings() {
                   }))}
                   onChange={(value) =>{
                     setMember(value.split(" ")[1])
-                    setNewSavings({
-                      ...newSavings,
-                      user_id: value.split(" ")[0],
-                    })
+                    setNewShares({  ...newShares, user_id: value.split(" ")[0],})
                   }
                     
                   } />   
@@ -162,7 +160,7 @@ function Savings() {
                 <div className="flex flex-col gap-2 my-4">
                   <label htmlFor=""> Amount</label>
                   <Input type="number" className="w-[100%]"
-                  value={newSavings.amount} onChange={(e) =>setNewSavings({...newSavings,amount: e.target.value})}
+                  value={newShares.amount} onChange={(e) =>setNewShares({...newShares,amount: e.target.value})}
                   />  
                 </div> 
 
@@ -173,7 +171,7 @@ function Savings() {
                   options={months.map((m)=>(
                     {label: m.label, value: m.value}
                   ))}
-                    onChange={(value) => setNewSavings({ ...newSavings, month_paid: value })}
+                    onChange={(value) => setNewShares({ ...newShares, month_paid: value })}
 
                   />
                 </div>  
@@ -181,68 +179,43 @@ function Savings() {
                    <div className="flex flex-col gap-2 my-4">
                   <label htmlFor="">payment type</label>
                   <Input type="text" className="w-[100%]"
-                  value={newSavings.payment_type} onChange={(e) =>setNewSavings({...newSavings,payment_type: e.target.value})}
+                  value={newShares.payment_type} onChange={(e) =>setNewShares({...newShares,payment_type: e.target.value})}
                   />  
                 </div> 
 
                    <div className="flex flex-col gap-2 my-4">
                   <label htmlFor="">Saving type</label>
                   <Input type="text" className="w-[100%]"
-                  value={newSavings.savings_type} onChange={(e) =>setNewSavings({...newSavings,savings_type: e.target.value})}
+                  value={newShares.savings_type} onChange={(e) =>setNewShares({...newShares,savings_type: e.target.value})}
                   />  
                 </div> 
 
               <div className=" flex flex-col gap-1 my-3">
-                <input type="submit" placeholder="Login" className="cursor-pointer h-[50px] rounded-md border border-slate-300 px-3 bg-green-800 text-white " value={"Add new savings"}/>
+                <input type="submit" placeholder="Login" className="cursor-pointer h-[50px] rounded-md border border-slate-300 px-3 bg-blue-800 text-white " value={"Add new shares"}/>
             </div>
             </form>          
         </Modal>
       </div>
 
-      <div className="flex justify-between items-center my-5">
-        <form className="flex items-center gap-2">
-          <Select
-            className="w-[400px]"
-            placeholder="Filter by:"
-            options={[
-              { value: "fullname", label: "Full Name" },
-              { value: "Gender", label: "Gender" },
-              { value: "Mobile NO.", label: "Mobile NO." },
-              { value: "Referral.", label: "Referral" },
-              { value: "Date.", label: "Date" },
-            ]}
-          />
-          <button className="border border-slate-300 py-1 px-4 rounded-md bg-blue-950 text-white">
-            Filter Member
-          </button>
-        </form>
-        <form className="flex items-center gap-2">
-          <Input
-            type="search"
-            placeholder="Search member"
-            className="w-[400px]"
-          />
-          <button className="border border-slate-300 py-1 px-4 rounded-md bg-blue-950 text-white">
-            Search Member
-          </button>
-        </form>
-      </div>
+      
 
-      <Table columns={columns}   dataSource={savings.map((saving, i)=>(
+      <Table columns={columns}   dataSource={shares.map((shares, i)=>(
         {
           no: i + 1,
-          fullname:saving.fullname,
-          gender:saving.gender,
-          phonenumber:saving.mobile,
-          amount:saving.amount,
-          month: saving.month_paid,
-          payment_type:saving.payment_type,
-          saving_type:saving.savings_type
+          fullname:shares.fullname,
+          gender:shares.gender,
+          phonenumber:shares.mobile,
+          amount:shares.amount,
+          month: shares.month_paid,
+          payment_type:shares.payment_type,
+          saving_type:shares.savings_type
           
         }
       ))}/>
+
     </DashboardLayout>
-  );
+    </>
+    )
 }
 
-export default Savings;
+export default Shares
