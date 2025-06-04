@@ -6,11 +6,13 @@ import { BiUserPin } from "react-icons/bi";
 import { Fade, Zoom } from "react-awesome-reveal";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { memberServices } from "../services/api";
+import { memberServices, savingServices } from "../services/api";
+import { MdOutlineSavings } from "react-icons/md";
 
 function Member() {
   const [open, setOpen] = useState(false);
   const [ members, setmembers] = useState([])
+  const [totalusers, setTotalusers] = useState(0);
 
   const [member, setmember] = useState({
     fullname: "",
@@ -32,6 +34,8 @@ function Member() {
 
   const getAllmembers = async () =>{
     const res = await memberServices.Allmembers()
+      const data = await memberServices.getTotalusers();
+          setTotalusers(data);
     setmembers(res)
     console.log(res)
   }
@@ -46,6 +50,25 @@ function Member() {
   const gotoProfile =(id)=>{
     navigate(`/profile/${id}`)
   }
+
+
+  //   useEffect(() => {
+  //   const fetchUsers = async () => {
+  //     try {
+  //       const users = await savingServices.getTotalusers();
+  //       console.log("Users from API:", users); // Confirm this logs the array
+  //       setTotalusers(users.length);
+  //     } catch (error) {
+  //       console.error("Error fetching users:", error);
+  //     }
+  //   };
+
+  //   fetchUsers();
+  // }, []);
+
+  
+
+
 
   const columns = [
     {
@@ -128,6 +151,23 @@ function Member() {
 
   return (
     <DashboardLayout>
+
+
+      <div className="">
+              <div className="w-[250px] h-[150px] rounded-md border border-gray-300 p-5 ">
+                <div className="flex flex-col gap-4">
+                  <MdOutlineSavings size={50} className="text-gray-400" />
+                  <h1>Total member</h1>
+                </div>
+    
+                <h1 className="text-2xl font-bold">
+                  {/* &#8358;
+                  {Intl.NumberFormat().format(totalusers ? totalusers.total : 0)} */}
+                        {Intl.NumberFormat().format(members.length || 0)}
+
+                </h1>
+              </div>
+            </div>
 
       <div className="flex justify-between items-center gap-5">
         <Fade direction="left" delay={1000}>

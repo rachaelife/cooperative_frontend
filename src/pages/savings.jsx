@@ -6,13 +6,47 @@ import { useEffect, useState } from "react";
 import {months} from "../months"
 import { memberServices, savingServices } from "../services/api";
 import { toast } from "sonner";
+import { MdOutlineSavings } from "react-icons/md";
 
 
 function Savings() {
+   
+ 
 
+const [currentsavings, setCurrentSavings] = useState({
+  savings_id: "",
+  amount: "",
+  savings_type: "",
+});
 
   const [open, setOPen] = useState(false)
    const [members, setmembers] = useState([]);
+   const [totalSavings, setTotalSavings] = useState(0)
+
+   const updatesavings = async () => {
+    try {
+      const {savings_id, amount, savings_type} = currentsavings;
+      await savingServices.Updatesavings(savings_id, amount, savings_type);
+      toast.success("savings updated");
+      fetchSavings(); // Refresh the table
+      setEditOpen(false);
+    } catch (err) {
+      toast.error("Failed to update savings");
+    }
+  };
+
+
+   const handleDelete = async (savings_id) => {
+    try {
+      await savingServices.Deletesavings(savings_id);
+      toast.success("savings deleted");
+      fetchSavings() // Refresh the table
+    } catch (err) {
+      console.log(err)
+      toast.error("Failed to delete savings");
+    }
+  };
+  
 
   const columns = [
      {
@@ -62,11 +96,17 @@ function Savings() {
       dataIndex: "saving_type",
       key: "saving_type",
     },
-    // {
-    //   title: "Action",
-    //   dataIndex: "action",
-    //   key: "action",
-    // },
+     {
+  title: "Action",
+  key: "action",
+  render: (_, record) => (
+    <div className="flex gap-2">
+      <Button type="link" onClick={() => updatesavings(record)}>Edit</Button>
+      <Button type="link" danger onClick={() => handleDelete(record.savings_id)}>Delete</Button>
+    </div>
+  ),
+}
+
   ];
  
     const [savings, setSavings] = useState([]);
@@ -94,6 +134,8 @@ function Savings() {
   const fetchSavings = async () => {
     try {
       const res = await savingServices.getAllsavings();
+      const data = await savingServices.getTotalsavings()
+      setTotalSavings(data[0] || 0)
       setSavings(res); // Make sure your backend returns an array
       console.log(res)
     } catch (error) {
@@ -130,6 +172,19 @@ function Savings() {
 
   return (
     <DashboardLayout>
+
+       <div className="">
+                          <div className="w-[250px] h-[150px] rounded-md border border-gray-300 p-5 ">
+                            <div className="flex flex-col gap-4">
+                              <MdOutlineSavings size={50} className="text-gray-400"/>
+                              <h1>Total development</h1>
+                            </div>
+              
+                            <h1 className="text-2xl font-bold">&#8358;{Intl.NumberFormat().format(totalSavings ? totalSavings.total : 0)}</h1>
+                          </div>
+                      </div> 
+
+
       <div className="flex justify-between items-center ">
         <h1 className="my-5 text-3xl font-bold">Savings</h1>
 
@@ -230,6 +285,8 @@ function Savings() {
 
       <Table columns={columns}   dataSource={savings.map((saving, i)=>(
         {
+          key: saving.savings_id,
+    savings_id: saving.savings_id,
           no: i + 1,
           fullname:saving.fullname,
           gender:saving.gender,

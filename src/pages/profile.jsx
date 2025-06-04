@@ -54,7 +54,7 @@ function Profile() {
       gender: res[0].gender,
       mobile: res[0].mobile,
       email: res[0].email,
-      address: res[0].address,
+      address: res[0].address,  
       referral: res[0].referral,
     });
   };
@@ -227,7 +227,7 @@ function Profile() {
                   <input
                     type="submit" 
                     placeholder="Login"
-                    className="cursor-pointer h-[50px] rounded-md border border-slate-300 px-3 bg-green-800 text-white "
+                    className="cursor-pointer h-[50px] rounded-md border border-slate-300 px-3 bg-blue-800 text-white "
                     value={"Submit Form"}
                   />
                 </div>

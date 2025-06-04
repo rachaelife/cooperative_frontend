@@ -1,19 +1,46 @@
-import React, { useEffect, useState } from "react";
-import DashboardLayout from "../components/_layout";
-import { AutoComplete, Button, Input, Modal, Select, Table } from "antd";
-import { CgAdd } from "react-icons/cg";
+import {
+  AutoComplete,
+  Button,
+  Input,
+  Modal,
+  Popconfirm,
+  Select,
+  Table,
+} from "antd";
 import { months } from "../months";
+import { CgAdd } from "react-icons/cg";
+import DashboardLayout from "../components/_layout";
 import { memberServices, savingServices } from "../services/api";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { MdOutlineSavings } from "react-icons/md";
 
-const Shares = () => {
+const Development = () => {
   const [open, setOPen] = useState(false);
   const [members, setmembers] = useState([]);
 
-  const [isEditing, setIsEditing] = useState(false);
-  const [editingRecord, setEditingRecord] = useState(null);
-  const [totalshares, setTotalshares] = useState(0);
+  const [editOpen, setEditOpen] = useState(false);
+  const [currentsavings, setCurrentSavings] = useState(null);
+
+  const [totalDev, setTotalDev] = useState(0);
+
+  const openEditModal = (development) => {
+    setCurrentSavings(development); // this sets the admin to be edited
+    setEditOpen(true); // show the modal
+  };
+
+  
+  //handledelete button
+  const handleDelete = async (savings_id) => {
+    try {
+      await savingServices.Deletesavings(savings_id);
+      toast.success("savings deleted");
+      fetchdevelopment() // Refresh the table
+    } catch (err) {
+      console.log(err)
+      toast.error("Failed to delete savings");
+    }
+  };
 
   const columns = [
     {
@@ -69,34 +96,24 @@ const Shares = () => {
       key: "action",
       render: (_, record) => (
         <div className="flex gap-2">
-          <Button type="link" onClick={() => handleEdit(record)}>
+          <Button type="link" onClick={() => openEditModal(record)}>
             Edit
           </Button>
-          <Button
-            type="link"
-            danger
-            onClick={() => handleDelete(record.savings_id)}
+          {/* <Button type="link" danger onClick={() => handleDelete(record.id)}>Delete</Button> */}
+          <Popconfirm
+            title="Are you sure you want to delete this development?"
+            onConfirm={() => handleDelete(record.savings_id)}
+            okText="Yes"
+            cancelText="No"
           >
-            Delete
-          </Button>
+            <Button danger>Delete</Button>
+          </Popconfirm>
         </div>
       ),
     },
   ];
 
-  const handleEdit = (record) => {
-    setIsEditing(true);
-    setEditingRecord(record);
-    setNewSavings({
-      ...newSavings,
-      user_id: record.user_id,
-      amount: record.amount,
-      savings_type: record.savings_type,
-    });
-    setOPen(true);
-  };
-
-  const [shares, setShares] = useState([]);
+  const [development, setDevelopment] = useState([]);
   const [member, setMember] = useState("");
 
   const [newSavings, setNewSavings] = useState({
@@ -104,7 +121,7 @@ const Shares = () => {
     amount: "",
     month_paid: "",
     payment_type: "",
-    savings_type: "shares",
+    savings_type: "development",
   });
 
   const fetchAllMember = async () => {
@@ -116,12 +133,12 @@ const Shares = () => {
     fetchAllMember();
   }, []);
 
-  const fetchShares = async () => {
+  const fetchdevelopment = async () => {
     try {
-      const res = await savingServices.getAllshares();
-      const data = await savingServices.getTotalshares();
-      setTotalshares(data[0] || 0);
-      setShares(res); // Make sure your backend returns an array
+      const res = await savingServices.getAlldevelopment();
+      const data = await savingServices.getUserDev();
+      setTotalDev(data[0] || 0);
+      setDevelopment(res); // Make sure your backend returns an array
       console.log(res);
     } catch (error) {
       toast.error("Error fetching savings");
@@ -147,15 +164,15 @@ const Shares = () => {
         payment_type: "",
         savings_type: "",
       });
-      fetchShares();
+      fetchdevelopment();
       console.log(newSavings);
     } catch (error) {
-      toast.error("Failed to add shares");
+      toast.error("Failed to add development");
     }
   };
 
   useEffect(() => {
-    fetchShares();
+    fetchdevelopment();
   }, []);
 
   return (
@@ -169,21 +186,19 @@ const Shares = () => {
             </div>
 
             <h1 className="text-2xl font-bold">
-              &#8358;
-              {Intl.NumberFormat().format(totalshares ? totalshares.total : 0)}
+              &#8358;{Intl.NumberFormat().format(totalDev ? totalDev.total : 0)}
             </h1>
           </div>
         </div>
-
         <div className="flex justify-between items-center ">
-          <h1 className="my-5 text-3xl font-bold">Shares</h1>
+          <h1 className="my-5 text-3xl font-bold">Development</h1>
 
           <Button onClick={() => setOPen(true)}>
-            <CgAdd /> New Shares
+            <CgAdd /> New Development
           </Button>
           <Modal open={open} footer={null} onCancel={() => setOPen(false)}>
             <div className="mb-10">
-              <h1 className="text-2xl text-slate-300">Shares Form</h1>
+              <h1 className="text-2xl text-slate-300">Development Form</h1>
             </div>
 
             <form className="" onSubmit={handleSubmit}>
@@ -277,24 +292,77 @@ const Shares = () => {
                   type="submit"
                   placeholder="Login"
                   className="cursor-pointer h-[50px] rounded-md border border-slate-300 px-3 bg-blue-800 text-white "
-                  value={"Add new shares"}
+                  value={"Add new development"}
                 />
               </div>
             </form>
           </Modal>
         </div>
 
+        <Modal
+          open={editOpen}
+          footer={null}
+          onCancel={() => setEditOpen(false)}
+          title="Edit savings"
+        >
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              updatesavings();
+            }}
+          >
+            <div className="flex flex-col gap-2 my-4">
+              <label>Amount</label>
+              <Input
+                value={currentsavings?.amount}
+                onChange={(e) =>
+                  setCurrentSavings({
+                    ...currentsavings,
+                    amount: e.target.value,
+                  })
+                }
+              />
+            </div>
+
+            <div className="flex flex-col gap-2 my-4">
+              <label htmlFor="">Saving type</label>
+              <Select
+                className="w-[100%]"
+                placeholder="Select savings type"
+                value={currentsavings?.savings_type}
+                options={[
+                  { label: "Shares", value: "shares" },
+                  { label: " Savings", value: "savings" },
+                  { label: "Building", value: "building" },
+                  { label: "Development", value: "development" },
+                ]}
+                onChange={(value) =>
+                  setCurrentSavings({ ...currentsavings, savings_type: value })
+                }
+              />
+            </div>
+
+            <div className="flex justify-end">
+              <Button type="primary" htmlType="submit">
+                Save Changes
+              </Button>
+            </div>
+          </form>
+        </Modal>
+
         <Table
           columns={columns}
-          dataSource={shares.map((shares, i) => ({
+          dataSource={development.map((development, i) => ({
+            key: development.savings_id,
+           savings_id: development.savings_id,
             no: i + 1,
-            fullname: shares.fullname,
-            gender: shares.gender,
-            phonenumber: shares.mobile,
-            amount: shares.amount,
-            month: shares.month_paid,
-            payment_type: shares.payment_type,
-            savings_type: shares.savings_type,
+            fullname: development.fullname,
+            gender: development.gender,
+            phonenumber: development.mobile,
+            amount: development.amount,
+            month: development.month_paid,
+            payment_type: development.payment_type,
+            savings_type: development.savings_type,
           }))}
         />
       </DashboardLayout>
@@ -302,4 +370,4 @@ const Shares = () => {
   );
 };
 
-export default Shares;
+export default Development;

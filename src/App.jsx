@@ -11,6 +11,7 @@ import Adminpage from "./pages/admin"
 import { Navigate } from "react-router-dom"
 import DashboardLayout from "./components/_layout"
 import Shares from "./pages/shares"
+import Development from "./pages/development"
 
 
 
@@ -29,6 +30,7 @@ function App() {
         <Route path="building" element={<Building />} />
         <Route path="/shares" element={<Shares/>}/>
         <Route path="admin" element={<Adminpage/>}/>
+        <Route path="development" element={<Development/>}/>
 
 
         <Route path="/login" element={<Login />} />

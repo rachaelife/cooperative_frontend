@@ -45,6 +45,17 @@ export const memberServices = {
     }
   },
 
+   getTotalusers: async(id)=>{
+    try {
+
+      const res = await api.get(`/all/users`)
+      return res.data.totalusers;
+      
+    } catch (error) {
+      toast.error(error.response.data.message)
+    }
+  },
+
   updateuser: async (
     id,
     fullname,
@@ -218,15 +229,52 @@ export const savingServices = {
     }
   },
 
-  addshares: async (user_id, amount, month_paid, payment_type, savings_type) => {
+   getUserDev: async(id)=>{
     try {
-      const res = await api.post("/new/savings", { user_id, amount, month_paid, payment_type, savings_type });
-      toast.success(res.data.message);
-      //  return res.data;
+
+      const res = await api.get(`/user/dev`)
+      return res.data.message
+      
     } catch (error) {
-      toast.error(error.response.data.message);
+      toast.error(error.response.data.message)
     }
   },
+
+  getTotalsavings: async(id)=>{
+    try {
+
+      const res = await api.get(`/user/savings`)
+      return res.data.message
+      
+    } catch (error) {
+      toast.error(error.response.data.message)
+    }
+  },
+
+  getTotalbuilding: async(id)=>{
+    try {
+
+      const res = await api.get(`/user/building`)
+      return res.data.message
+      
+    } catch (error) {
+      toast.error(error.response.data.message)
+    }
+  },
+
+   getTotalshares: async(id)=>{
+    try {
+
+      const res = await api.get(`/user/shares`)
+      return res.data.message
+      
+    } catch (error) {
+      toast.error(error.response.data.message)
+    }
+  },
+
+ 
+
 
    getAllshares: async () => {
     try {
@@ -236,4 +284,50 @@ export const savingServices = {
       toast.error(error.response.data.message);
     }
   },
+
+  getAllbuilding: async () => {
+    try {
+      const res = await api.get("/building");
+      return res.data.message;
+    } catch (error) {
+      toast.error(error.response.data.message);
+    }
+  },
+  
+
+   getAlldevelopment: async () => {
+    try {
+      const res = await api.get("/development");
+      return res.data.message;
+    } catch (error) {
+      toast.error(error.response.data.message);
+    }
+  },
+
+  
+  Updatesavings: async (savings_id, amount, savings_type) => {
+    
+  try {
+    const res = await api.patch(`/update/savings/${savings_id}`, {
+      amount, savings_type
+    });
+    return res.data;
+  } catch (error) {
+    toast.error(error.response?.data?.message || "Update failed");
+    throw error;
+  }
+},
+
+
+ Deletesavings: async (savings_id) => {
+  try {
+    const res = await api.delete(`/delete/savings/${savings_id}`);
+    return res.data;
+  } catch (error) {
+    toast.error(error.response?.data?.message || "Error deleting admin");
+    throw error;
+  }
+}
+
+  
 };
