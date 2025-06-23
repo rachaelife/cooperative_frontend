@@ -1,0 +1,203 @@
+/* Enhanced Table Styles */
+.custom-table {
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.custom-table .ant-table-thead > tr > th {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  font-weight: 600;
+  border: none;
+  padding: 16px 12px;
+  font-size: 14px;
+}
+
+.custom-table .ant-table-thead > tr > th::before {
+  display: none;
+}
+
+.custom-table .ant-table-tbody > tr > td {
+  padding: 12px;
+  border-bottom: 1px solid #f0f0f0;
+  transition: all 0.3s ease;
+}
+
+.custom-table .ant-table-tbody > tr:hover > td {
+  background-color: #f8faff;
+}
+
+.custom-table .ant-table-tbody > tr:nth-child(even) > td {
+  background-color: #fafbfc;
+}
+
+.custom-table .ant-table-tbody > tr:nth-child(even):hover > td {
+  background-color: #f0f4ff;
+}
+
+.custom-table .ant-pagination {
+  margin-top: 24px;
+  text-align: center;
+}
+
+.custom-table .ant-pagination .ant-pagination-item-active {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-color: #667eea;
+}
+
+.custom-table .ant-pagination .ant-pagination-item-active a {
+  color: white;
+}
+
+.custom-table .ant-empty {
+  padding: 40px 20px;
+}
+
+/* Status Tags */
+.ant-tag {
+  border-radius: 12px;
+  padding: 4px 12px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Button Enhancements */
+.custom-table .ant-btn {
+  border-radius: 6px;
+  font-weight: 500;
+  transition: all 0.3s ease;
+}
+
+.custom-table .ant-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .custom-table .ant-table-thead > tr > th,
+  .custom-table .ant-table-tbody > tr > td {
+    padding: 8px 6px;
+    font-size: 12px;
+  }
+  
+  .custom-table .ant-btn {
+    padding: 4px 8px;
+    font-size: 12px;
+  }
+}
+
+/* Loading State */
+.custom-table .ant-spin-container {
+  min-height: 200px;
+}
+
+/* Enhanced Tabs for Loan Page */
+.custom-tabs .ant-tabs-tab {
+  padding: 12px 24px;
+  font-weight: 600;
+  font-size: 16px;
+  border-radius: 8px 8px 0 0;
+  margin-right: 8px;
+  transition: all 0.3s ease;
+}
+
+.custom-tabs .ant-tabs-tab:hover {
+  background: linear-gradient(135deg, #f0f4ff 0%, #e8f2ff 100%);
+}
+
+.custom-tabs .ant-tabs-tab-active {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white !important;
+}
+
+.custom-tabs .ant-tabs-tab-active .ant-tabs-tab-btn {
+  color: white !important;
+}
+
+.custom-tabs .ant-tabs-content-holder {
+  padding: 24px;
+  background: white;
+  border-radius: 0 8px 8px 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.custom-tabs .ant-tabs-ink-bar {
+  display: none;
+}
+
+/* Card Enhancements */
+.ant-card {
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
+}
+
+.ant-card:hover {
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+  transform: translateY(-2px);
+}
+
+/* Modal Enhancements */
+.ant-modal-content {
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.ant-modal-header {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-bottom: none;
+  padding: 20px 24px;
+}
+
+.ant-modal-title {
+  color: white;
+  font-weight: 600;
+}
+
+.ant-modal-close {
+  color: white;
+}
+
+.ant-modal-close:hover {
+  color: #f0f0f0;
+}
+
+/* Form Enhancements */
+.ant-form-item-label > label {
+  font-weight: 600;
+  color: #374151;
+}
+
+.ant-input,
+.ant-select-selector {
+  border-radius: 8px;
+  border: 2px solid #e5e7eb;
+  transition: all 0.3s ease;
+}
+
+.ant-input:focus,
+.ant-select-focused .ant-select-selector {
+  border-color: #667eea;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+/* Gradient Backgrounds for Statistics Cards */
+.gradient-blue {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+.gradient-green {
+  background: linear-gradient(135deg, #56ab2f 0%, #a8e6cf 100%);
+}
+
+.gradient-purple {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+.gradient-orange {
+  background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+}

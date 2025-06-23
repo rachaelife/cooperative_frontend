@@ -1,42 +1,1 @@
-import { BrowserRouter, Route, Routes } from "react-router-dom"
-import Homepage from "./pages/homepage"
-// import ContactPage from "./pages/contact"
-import Savings from "./pages/savings"
-import Member from "./pages/member"
-import Loan from "./pages/loan"
-import Login from "./pages/login"
-import Profile from "./pages/profile"
-import Building from "./pages/building"
-import Adminpage from "./pages/admin"
-import { Navigate } from "react-router-dom"
-import DashboardLayout from "./components/_layout"
-import Shares from "./pages/shares"
-import Development from "./pages/development"
-
-
-
-function App() {
-
-
-  return (
-    <BrowserRouter>
-      <Routes>
-      
-        <Route index element={<Homepage />} />
-        <Route path="savings" element={<Savings />} />
-        <Route path="members"  element={<Member />} />
-        <Route path="loan" element={<Loan />} />
-        <Route path="profile/:id" element={<Profile />} />
-        <Route path="building" element={<Building />} />
-        <Route path="/shares" element={<Shares/>}/>
-        <Route path="admin" element={<Adminpage/>}/>
-        <Route path="development" element={<Development/>}/>
-
-
-        <Route path="/login" element={<Login />} />
-      </Routes>
-    </BrowserRouter>
-  )
-}
-
-export default App
+import { BrowserRouter, Route, Routes } from "react-router-dom"import Homepage from "./pages/homepage"// import ContactPage from "./pages/contact"import Savings from "./pages/savings"import Member from "./pages/member"import Loan from "./pages/loan"import Login from "./pages/login"import Profile from "./pages/profile"import Building from "./pages/building"import Adminpage from "./pages/admin"import { Navigate } from "react-router-dom"import DashboardLayout from "./components/_layout"import Shares from "./pages/shares"import Development from "./pages/development"import Reports from "./pages/reports"import ErrorBoundary from "./components/ErrorBoundary"import { ConfigProvider } from 'antd'// User Dashboard Componentsimport UserLogin from "./pages/user-login"import UserPasswordSetup from "./pages/user-password-setup"import UserDashboard from "./pages/user-dashboard"import UserSavings from "./pages/user-savings"import UserLoans from "./pages/user-loans"import UserProfile from "./pages/user-profile"import ProtectedRoute from "./components/protected-route"import { AuthProvider } from "./contexts/auth-context"import './styles/modal-scrollable.css'function App() {  // Ant Design theme configuration  const theme = {    token: {      colorPrimary: '#1890ff',      borderRadius: 6,      colorSuccess: '#52c41a',      colorWarning: '#faad14',      colorError: '#ff4d4f',    },  };  return (    <ErrorBoundary>      <ConfigProvider theme={theme}>        <AuthProvider>          <BrowserRouter>          <Routes>            {/* Admin Routes */}            <Route index element={<Homepage />} />            <Route path="savings" element={<Savings />} />            <Route path="members"  element={<Member />} />            <Route path="loan" element={<Loan />} />            <Route path="profile/:id" element={<Profile />} />            <Route path="building" element={<Building />} />            <Route path="/shares" element={<Shares/>}/>            <Route path="admin" element={<Adminpage/>}/>            <Route path="development" element={<Development/>}/>            <Route path="reports" element={<Reports/>}/>            <Route path="/login" element={<Login />} />            {/* User Routes */}            <Route              path="/user/login"              element={                <ProtectedRoute requireAuth={false}>                  <UserLogin />                </ProtectedRoute>              }            />            <Route              path="/user/password-setup"              element={                <ProtectedRoute requireAuth={false}>                  <UserPasswordSetup />                </ProtectedRoute>              }            />            <Route              path="/user/dashboard"              element={                <ProtectedRoute>                  <UserDashboard />                </ProtectedRoute>              }            />            <Route              path="/user/savings/*"              element={                <ProtectedRoute>                  <UserSavings />                </ProtectedRoute>              }            />            <Route              path="/user/loans/*"              element={                <ProtectedRoute>                  <UserLoans />                </ProtectedRoute>              }            />            <Route              path="/user/profile"              element={                <ProtectedRoute>                  <UserProfile />                </ProtectedRoute>              }            />            {/* Catch all route for 404 */}            <Route path="*" element={<Navigate to="/" replace />} />          </Routes>        </BrowserRouter>        </AuthProvider>      </ConfigProvider>    </ErrorBoundary>  )}export default App

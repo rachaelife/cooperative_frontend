@@ -1,22 +1,1 @@
-import { useEffect } from "react"
-
-
-export const useAuth = ()=>{
-
-    
-
-     const authUser = ()=>{
-      const isAuthenticated = localStorage.getItem("token")
-      if(isAuthenticated){
-        return 
-    }else{
-          navigate("/login")
-      }
-    }
-
-    useEffect(()=>{
-        authUser()
-    },[])
-
-    return {authUser}
-}
+import { useEffect } from "react"import {useNavigate} from "react-router-dom"export const useAuth = ()=>{    const navigate = useNavigate()     const authUser = ()=>{      const isAuthenticated = localStorage.getItem("token")      if(isAuthenticated){        return     }else{          navigate("/login")      }    }    useEffect(()=>{        authUser()    },[])    return {authUser}}

@@ -2,26 +2,65 @@ import React, { useEffect } from "react";
 import DashboardLayout from "../components/_layout";
 import { useState } from "react";
 import { BiEdit, BiUserPin } from "react-icons/bi";
-import { AutoComplete, Button, Input, Modal, Select, Table, Tabs } from "antd";
+import {
+  AutoComplete,
+  Button,
+  Input,
+  Modal,
+  Select,
+  Table,
+  Tabs,
+  Card,
+  Row,
+  Col,
+  Statistic,
+  Space,
+  Tag,
+  Avatar,
+  Tooltip,
+  Descriptions,
+  Upload
+} from "antd";
 import Savings from "../components/savings";
 import Loan from "../components/loans";
+import LoanRepaymentHistory from "../components/LoanRepaymentHistory";
 import { useParams } from "react-router-dom";
-import { memberServices, savingServices } from "../services/api";
+import { memberServices, savingServices, loanRepaymentServices, loanServices } from "../services/api";
 import { toast } from "sonner";
 import { BsCash } from "react-icons/bs";
-import { MdOutlineSavings } from "react-icons/md";
-
+import {
+  MdOutlineSavings,
+  MdPerson,
+  MdEmail,
+  MdPhone,
+  MdLocationOn,
+  MdCalendarToday,
+  MdEdit,
+  MdAccountBalance,
+  MdTrendingUp,
+  MdMale,
+  MdFemale
+} from "react-icons/md";
+import {
+  UserOutlined,
+  EditOutlined,
+  CameraOutlined,
+  MailOutlined,
+  PhoneOutlined,
+  HomeOutlined,
+  CalendarOutlined
+} from '@ant-design/icons';
+import { Fade } from "react-awesome-reveal";
 function Profile() {
   const [open, setOpen] = useState(false);
   const [savings, setSavings] = useState([])
-
+  const [nextPayment, setNextPayment] = useState(null)
+  const [pendingPayments, setPendingPayments] = useState([])
+  const [userLoans, setUserLoans] = useState([])
   const [totalSavings, setTotalSavings] = useState(0)
-
   const openModal = () => {
     setOpen(true);
   };
-
-
   const [member, setmember] = useState({
     fullname: "",
     gender: "",
@@ -30,51 +69,77 @@ function Profile() {
     address: "",
     referral: "",
   });
-
   const { id } = useParams();
-
   const [previewUrl, setpreviewUrl] = useState("");
   function getImagePreview(e) {
     const file = e.target.files[0];
     setpreviewUrl(file);
-
     // const columns = [
-
     // ]
   }
-
   const getUserProfile = async () => {
-    const res = await memberServices.getUser(id);
-    const data = await savingServices.getUserSavings(id)
-   setTotalSavings(data.total)
-   console.log(data.total)
-    setSavings(data.data)
-    setmember({
-      fullname: res[0].fullname,
-      gender: res[0].gender,
-      mobile: res[0].mobile,
-      email: res[0].email,
-      address: res[0].address,  
-      referral: res[0].referral,
-    });
-  };
+    try {
+      if (!id) {
+        toast.error("User ID is required");
+        return;
+      }
 
+      // Fetch user profile data
+      const res = await memberServices.getUser(id);
+      if (res && res.length > 0) {
+        setmember(res[0]); // Set the user data to member state
+      } else {
+        toast.error("User not found");
+      }
+
+      // Fetch user savings data
+      const data = await savingServices.getUserSavings(id);
+      setTotalSavings(data.total || 0);
+      setSavings(data.data || []);
+    } catch (error) {
+      toast.error("Failed to fetch user profile");
+    }
+  };
+  const fetchLoanRepaymentData = async () => {
+    try {
+      // Fetch next payment due
+      const nextPaymentData = await loanRepaymentServices.getNextPayment(id);
+      setNextPayment(nextPaymentData);
+      // Fetch pending payments
+      const pendingPaymentsData = await loanRepaymentServices.getPendingPayments(id);
+      setPendingPayments(pendingPaymentsData || []);
+      // Fetch user loans for outstanding balance calculation
+      const userLoansData = await loanServices.getUserLoans(id);
+      setUserLoans(userLoansData || []);
+    } catch (error) {
+      }
+  };
+  // Calculate total outstanding loan balance (only for active and partial loans)
+  const calculateOutstandingBalance = () => {
+    return userLoans.reduce((total, loan) => {
+      // Only include loans that are not completed
+      if (loan.status !== 'completed') {
+        return total + (parseFloat(loan.remaining_balance) || 0);
+      }
+      return total;
+    }, 0);
+  };
   useEffect(() => {
     getUserProfile();
+    fetchLoanRepaymentData();
   }, []);
-
-
-   const handleupdate = async (e) =>{
-    e.preventDefault()
+   const handleupdate = async (e) => {
+    e.preventDefault();
     try {
-      const res = await memberServices.updateuser(id, member.fullname, member.gender, member.mobile,member.email,member.address,member.referral)
-      toast.success(res)
+      await memberServices.updateuser(id, member.fullname, member.gender, member.mobile, member.email, member.address, member.referral);
+      toast.success("Profile updated successfully");
+      setOpen(false);
+      // Refresh the profile data
+      getUserProfile();
     } catch (error) {
-    
-      console.log(error)
+      toast.error("Failed to update profile");
     }
   }
-
   const items = [
     {
       key: "1",
@@ -84,205 +149,390 @@ function Profile() {
     {
       key: "2",
       label: "Loans",
-      children: <Loan />,
+      children: <Loan userId={id} />,
+    },
+    {
+      key: "3",
+      label: "Loan Repayments",
+      children: <LoanRepaymentHistory userId={id} />,
     },
   ];
-
   return (
     <DashboardLayout>
-      <nav className=" mb-5 w-[100%] h-[60px] flex items-center justify-center ">
-        <h1 className="font-bold text-3xl ">Member's profile</h1>
-      </nav>
-
-      <div className="flex justify-between items-center flex-wrap">
-        <div className="flex gap-10 items-center mb-10">
-          {previewUrl ? (
-            <div className="flex flex-col justify-center items-center w-[150px] h-[150px] gap-3 cursor-pointer">
-              <img src={URL.createObjectURL(previewUrl)} alt="" />
-            </div>
-          ) : (
-            <div className="flex flex-col gap-2 ">
-              <label
-                htmlFor="file"
-                className="flex flex-col justify-center items-center w-[150px] h-[150px] gap-3 cursor-pointer rounded-full bg-slate-300 overflow-hidden"
-              >
-                <BiUserPin />
-                <span>upload image</span>
-              </label>
-              <input
-                type="file"
-                id="file"
-                className="hidden rounded-full "
-                onChange={getImagePreview}
-              />
-            </div>
-          )}
-
-          <div className="">
-            <form action="">
-              <label
-                htmlFor="upload"
-                className="border border-slate-300 p-2 rounded-md cursor-pointer"
-              >
-                <span>Upload new Passport</span>
-              </label>
-              <Input
-                type="file"
-                className="hidden"
-                id="upload"
-                onChange={(e) => setpreviewUrl(e.target.files[0])}
-              />
-            </form>
-          </div>
+      <div className="p-6">
+        {/* Header Section */}
+        <div className="mb-8">
+          <Fade direction="left" delay={300}>
+            <h1 className="text-4xl font-bold text-gray-800 mb-2">👤 Member Profile</h1>
+            <p className="text-gray-600">View and manage member information and transaction history</p>
+          </Fade>
         </div>
-
-        <div className="flex items-center gap-3">
-            <div className="w-[250px] h-[150px] rounded-md border border-gray-300 p-5 ">
-              <div className="flex flex-col gap-4">
-                <MdOutlineSavings size={50} className="text-gray-400"/>
-                <h1>Total Savings</h1>
+        {/* Profile Header Card */}
+        <Card className="mb-8 shadow-lg">
+          <Row gutter={[24, 24]} align="middle">
+            <Col xs={24} md={8} className="text-center">
+              <div className="relative inline-block">
+                {previewUrl ? (
+                  <Avatar
+                    size={150}
+                    src={URL.createObjectURL(previewUrl)}
+                    className="border-4 border-blue-200 shadow-lg"
+                  />
+                ) : (
+                  <Avatar
+                    size={150}
+                    icon={<UserOutlined />}
+                    className="bg-gray-200 border-4 border-gray-300 shadow-lg"
+                  />
+                )}
+                <Upload
+                  showUploadList={false}
+                  beforeUpload={(file) => {
+                    setpreviewUrl(file);
+                    return false;
+                  }}
+                  accept="image/*"
+                >
+                  <Button
+                    type="primary"
+                    shape="circle"
+                    icon={<CameraOutlined />}
+                    className="absolute bottom-2 right-2 bg-blue-600 hover:bg-blue-700"
+                    size="large"
+                  />
+                </Upload>
               </div>
-
-              <h1 className="text-2xl font-bold">&#8358;{Intl.NumberFormat().format(totalSavings.total_savings)}</h1>
+              <div className="mt-4">
+                <h2 className="text-2xl font-bold text-gray-800">{member.fullname}</h2>
+                <Tag
+                  color={member.gender === 'male' ? 'blue' : 'pink'}
+                  icon={member.gender === 'male' ? <MdMale /> : <MdFemale />}
+                  className="mt-2 capitalize"
+                >
+                  {member.gender}
+                </Tag>
+              </div>
+            </Col>
+            <Col xs={24} md={8}>
+              <div className="space-y-4">
+                <div className="flex items-center gap-3">
+                  <MailOutlined className="text-blue-500 text-lg" />
+                  <div>
+                    <p className="text-sm text-gray-500">Email</p>
+                    <p className="font-medium">{member.email}</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <PhoneOutlined className="text-green-500 text-lg" />
+                  <div>
+                    <p className="text-sm text-gray-500">Phone</p>
+                    <p className="font-medium">{member.mobile}</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <HomeOutlined className="text-orange-500 text-lg" />
+                  <div>
+                    <p className="text-sm text-gray-500">Address</p>
+                    <p className="font-medium">{member.address}</p>
+                  </div>
+                </div>
+              </div>
+            </Col>
+            <Col xs={24} md={8}>
+              <Card className="bg-gradient-to-r from-green-500 to-green-600 text-white border-0 mb-4">
+                <Statistic
+                  title={<span className="text-green-100">Total Savings</span>}
+                  value={totalSavings || 0}
+                  prefix={<MdOutlineSavings className="text-green-200" />}
+                  valueStyle={{ color: '#fff', fontSize: '1.8rem', fontWeight: 'bold' }}
+                  formatter={(value) => `₦${Number(value).toLocaleString()}`}
+                />
+              </Card>
+              {nextPayment && (
+                <Card className="bg-gradient-to-r from-orange-500 to-orange-600 text-white border-0 mb-4">
+                  <div className="text-center">
+                    <h3 className="text-orange-100 text-sm mb-2">Next Payment Due</h3>
+                    <p className="text-white text-xl font-bold">₦{Number(nextPayment.amount_due || 0).toLocaleString()}</p>
+                    <p className="text-orange-100 text-sm">Due: {nextPayment.due_date ? new Date(nextPayment.due_date).toLocaleDateString() : 'N/A'}</p>
+                  </div>
+                </Card>
+              )}
+              <Button
+                type="primary"
+                icon={<EditOutlined />}
+                onClick={() => setOpen(true)}
+                className="w-full bg-blue-600 hover:bg-blue-700"
+                size="large"
+              >
+                Edit Profile
+              </Button>
+            </Col>
+          </Row>
+        </Card>
+        {/* Enhanced Edit Profile Modal */}
+        <Modal
+          title={
+            <div className="flex items-center gap-3 pb-4 border-b">
+              <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+                <EditOutlined className="text-blue-600 text-xl" />
+              </div>
+              <div>
+                <h2 className="text-xl font-semibold text-gray-800">Edit Profile Information</h2>
+                <p className="text-sm text-gray-600">Update member details and contact information</p>
+              </div>
             </div>
-        </div>  
-
-      </div>
-
-      {/* PROFILE INFORMATION */}
-      <div className="border border-slate-200 rounded-md shadow-lg p-5">
-        <div className="flex justify-between px-5 mt-5 font-bold">
-          <h1>Personal Information</h1>
-          <Button
-            className="cursor-pointer rounded-md"
-            onClick={() => setOpen(true)} >
-            <BiEdit />
-            <span>Edit</span>
-            </Button>
-
-            <Modal footer={null}
+          }
           open={open}
-          onCancel={() => {
-            setOpen(false);
-          }}>
-              <div className="mb-10">
-                <h1 className="text-2xl text-slate-300">Edit user info</h1>
-              </div>
-              <form className="" onSubmit={handleupdate}>
-                <div className="flex flex-col gap-2 my-4">
-                  <label htmlFor="">member fullname</label>
-                  <Input type="text"  className="w-[100%]" name="fullname" value={member.fullname} onChange={(e)=>setmember({...member, fullname:e.target.value})}/>
-                </div>
-
-                {/* <div className="flex flex-col gap-2 my-4">
-                  <label htmlFor="">gender</label>
-                  <Input type="" className="w-[100%]"   name="gender" value={member.gender} onChange={(e)=>setmember({...member, gender:e.target.value})}/>
-                </div> */}
-
-
-                  <div className=" gap-2 my-4 mt-5 flex flex-col">
-              <label htmlFor="">Gender</label>
-              <Select 
-              placeholder="Select Gender"
-              options={[
-                  {value: "male", label: "Male"},
-                  {value: "female", label: "Female"},
-                ]} 
-
-                value={member.gender} onChange={(value) => setmember({ ...member, gender:value})}
-              
-              />
-            </div>
-
-                <div className="flex flex-col gap-2 my-4">
-                  <label htmlFor="">E-mail</label>
-                  <Input type="email" className="w-[100%]"   name="email" value={member.email} onChange={(e)=>setmember({...member, email:e.target.value})}/>
-                </div>
-                <div className="flex flex-col gap-2 my-4">
-                  <label htmlFor="">regitration date</label>
-                  <Input type="date" className="w-[100%]"   name="createdAt" value={member.createdAt} onChange={(e)=>setmember({...member, createdAt:e.target.value})}/>
-                </div>
-                <div className="flex flex-col gap-2 my-4">
-                  <label htmlFor="">phone</label>
-                  <Input type="number" className="w-[100%]" name="mobile" value={member.mobile} onChange={(e)=>setmember({...member, mobile:e.target.value})}/>
-                </div>
-                <div className="flex flex-col gap-2 my-4">
-                  <label htmlFor="">Address</label>
-                  <Input type="text" className="w-[100%]"   name="address" value={member.address} onChange={(e)=>setmember({...member, address:e.target.value})}/>
-                </div>
-                <div className="flex flex-col gap-2 my-4">
-                  <label htmlFor="">referral</label>
-                  <Input type="text" className="w-[100%]" name="referral" value={member.referral} onChange={(e)=>setmember({...member, referral:e.target.value})}/>
-                </div>
-                {/* <div className="flex flex-col gap-2 my-4">
-                  <label htmlFor="">Total interest</label>
-                  <Select 
-                  placeholder="Select saving month"
-                  options={months.map((m)=>(
-                    {label: m.label, value: m.value}
-                  ))}  />
-                </div>   */}
-
-                <div className=" flex flex-col gap-1 my-3">
-                  <input
-                    type="submit" 
-                    placeholder="Login"
-                    className="cursor-pointer h-[50px] rounded-md border border-slate-300 px-3 bg-blue-800 text-white "
-                    value={"Submit Form"}
+          onCancel={() => setOpen(false)}
+          footer={null}
+          width={600}
+          className="top-8"
+        >
+          <form onSubmit={handleupdate} className="mt-6">
+            <Row gutter={[16, 16]}>
+              <Col span={24}>
+                <div className="flex flex-col gap-2">
+                  <label className="text-sm font-medium text-gray-700 flex items-center gap-2">
+                    <MdPerson className="text-gray-500" />
+                    Full Name *
+                  </label>
+                  <Input
+                    size="large"
+                    placeholder="Enter full name"
+                    value={member.fullname}
+                    onChange={(e) => setmember({...member, fullname: e.target.value})}
                   />
                 </div>
-              </form>
-            </Modal>
-          
-        </div>
-
-        
-
-        <div className="flex justify-between items-center m-5 flex-wrap">
-          <div>
-            <h1 className="text-slate-400">Full Name</h1>
-            <p>{member.fullname}</p>
+              </Col>
+              <Col span={12}>
+                <div className="flex flex-col gap-2">
+                  <label className="text-sm font-medium text-gray-700">Gender *</label>
+                  <Select
+                    size="large"
+                    placeholder="Select gender"
+                    value={member.gender}
+                    onChange={(value) => setmember({...member, gender: value})}
+                    options={[
+                      { value: "male", label: "Male" },
+                      { value: "female", label: "Female" },
+                    ]}
+                  />
+                </div>
+              </Col>
+              <Col span={12}>
+                <div className="flex flex-col gap-2">
+                  <label className="text-sm font-medium text-gray-700 flex items-center gap-2">
+                    <MdPhone className="text-gray-500" />
+                    Phone Number *
+                  </label>
+                  <Input
+                    size="large"
+                    placeholder="Enter phone number"
+                    value={member.mobile}
+                    onChange={(e) => setmember({...member, mobile: e.target.value})}
+                  />
+                </div>
+              </Col>
+              <Col span={24}>
+                <div className="flex flex-col gap-2">
+                  <label className="text-sm font-medium text-gray-700 flex items-center gap-2">
+                    <MdEmail className="text-gray-500" />
+                    Email Address *
+                  </label>
+                  <Input
+                    size="large"
+                    type="email"
+                    placeholder="Enter email address"
+                    value={member.email}
+                    onChange={(e) => setmember({...member, email: e.target.value})}
+                  />
+                </div>
+              </Col>
+              <Col span={24}>
+                <div className="flex flex-col gap-2">
+                  <label className="text-sm font-medium text-gray-700 flex items-center gap-2">
+                    <MdLocationOn className="text-gray-500" />
+                    Address
+                  </label>
+                  <Input.TextArea
+                    size="large"
+                    placeholder="Enter address"
+                    rows={3}
+                    value={member.address}
+                    onChange={(e) => setmember({...member, address: e.target.value})}
+                  />
+                </div>
+              </Col>
+              <Col span={24}>
+                <div className="flex flex-col gap-2">
+                  <label className="text-sm font-medium text-gray-700">Referral</label>
+                  <Input
+                    size="large"
+                    placeholder="Enter referral information"
+                    value={member.referral}
+                    onChange={(e) => setmember({...member, referral: e.target.value})}
+                  />
+                </div>
+              </Col>
+            </Row>
+            {/* Submit Button */}
+            <div className="flex justify-end gap-3 mt-8 pt-6 border-t">
+              <Button size="large" onClick={() => setOpen(false)}>
+                Cancel
+              </Button>
+              <Button
+                type="primary"
+                size="large"
+                htmlType="submit"
+                className="bg-blue-600 hover:bg-blue-700"
+              >
+                Update Profile
+              </Button>
+            </div>
+          </form>
+        </Modal>
+        {/* Financial Summary Cards */}
+        <Row gutter={[16, 16]} className="mb-8">
+          <Col xs={24} sm={12} md={8}>
+            <Card className="bg-gradient-to-r from-green-500 to-green-600 text-white border-0 shadow-lg hover:shadow-xl transition-shadow">
+              <Statistic
+                title={<span className="text-green-100">Total Savings</span>}
+                value={totalSavings || 0}
+                prefix={<MdOutlineSavings className="text-green-200" />}
+                valueStyle={{ color: '#fff', fontSize: '1.3rem', fontWeight: 'bold' }}
+                formatter={(value) => `₦${Number(value).toLocaleString()}`}
+              />
+            </Card>
+          </Col>
+          <Col xs={24} sm={12} md={8}>
+            <Card className="bg-gradient-to-r from-red-500 to-red-600 text-white border-0 shadow-lg hover:shadow-xl transition-shadow">
+              <Statistic
+                title={<span className="text-red-100">Outstanding Loans</span>}
+                value={calculateOutstandingBalance()}
+                prefix={<MdAccountBalance className="text-red-200" />}
+                valueStyle={{ color: '#fff', fontSize: '1.3rem', fontWeight: 'bold' }}
+                formatter={(value) => `₦${Number(value).toLocaleString()}`}
+              />
+            </Card>
+          </Col>
+          {nextPayment && (
+            <Col xs={24} sm={12} md={8}>
+              <Card className="bg-gradient-to-r from-orange-500 to-orange-600 text-white border-0 shadow-lg hover:shadow-xl transition-shadow">
+                <div className="text-center">
+                  <h3 className="text-orange-100 text-sm mb-2">Next Payment Due</h3>
+                  <p className="text-white text-xl font-bold">₦{Number(nextPayment.amount_due || 0).toLocaleString()}</p>
+                  <p className="text-orange-100 text-sm">Due: {nextPayment.due_date ? new Date(nextPayment.due_date).toLocaleDateString() : 'N/A'}</p>
+                </div>
+              </Card>
+            </Col>
+          )}
+        </Row>
+        {/* Detailed Information Card */}
+        <Card className="mb-8 shadow-lg">
+          <div className="flex justify-between items-center mb-6">
+            <h2 className="text-xl font-semibold text-gray-800">Personal Information</h2>
+            <Button
+              type="primary"
+              icon={<EditOutlined />}
+              onClick={() => setOpen(true)}
+              className="bg-blue-600 hover:bg-blue-700"
+            >
+              Edit Profile
+            </Button>
           </div>
-
-          <div>
-            <h1 className="text-slate-400">registration date</h1>
-            <p>{new Date(member.createdAt).toDateString(2)}</p>
+          <Descriptions
+            bordered
+            column={{ xs: 1, sm: 2, md: 3 }}
+            size="middle"
+            labelStyle={{ fontWeight: 'bold', backgroundColor: '#f8f9fa' }}
+          >
+            <Descriptions.Item
+              label={
+                <span className="flex items-center gap-2">
+                  <UserOutlined className="text-blue-500" />
+                  Full Name
+                </span>
+              }
+            >
+              {member.fullname}
+            </Descriptions.Item>
+            <Descriptions.Item
+              label={
+                <span className="flex items-center gap-2">
+                  {member.gender === 'male' ?
+                    <MdMale className="text-blue-500" /> :
+                    <MdFemale className="text-pink-500" />
+                  }
+                  Gender
+                </span>
+              }
+            >
+              <Tag color={member.gender === 'male' ? 'blue' : 'pink'} className="capitalize">
+                {member.gender}
+              </Tag>
+            </Descriptions.Item>
+            <Descriptions.Item
+              label={
+                <span className="flex items-center gap-2">
+                  <CalendarOutlined className="text-green-500" />
+                  Registration Date
+                </span>
+              }
+            >
+              {member.createdAt ? new Date(member.createdAt).toLocaleDateString() : 'N/A'}
+            </Descriptions.Item>
+            <Descriptions.Item
+              label={
+                <span className="flex items-center gap-2">
+                  <MailOutlined className="text-orange-500" />
+                  Email
+                </span>
+              }
+            >
+              {member.email}
+            </Descriptions.Item>
+            <Descriptions.Item
+              label={
+                <span className="flex items-center gap-2">
+                  <PhoneOutlined className="text-purple-500" />
+                  Phone
+                </span>
+              }
+            >
+              {member.mobile}
+            </Descriptions.Item>
+            <Descriptions.Item
+              label={
+                <span className="flex items-center gap-2">
+                  <HomeOutlined className="text-red-500" />
+                  Address
+                </span>
+              }
+            >
+              {member.address}
+            </Descriptions.Item>
+            <Descriptions.Item
+              label="Referral"
+              span={3}
+            >
+              {member.referral || 'No referral information'}
+            </Descriptions.Item>
+          </Descriptions>
+        </Card>
+        {/* Transaction Summary */}
+        <Card className="shadow-lg">
+          <div className="mb-6">
+            <h2 className="text-xl font-semibold text-gray-800 mb-2">Transaction Summary</h2>
+            <p className="text-gray-600">View member's savings and loan history</p>
           </div>
-
-          <div>
-            <h1 className="text-slate-400">Address</h1>
-            <p>{member.address}</p>
-          </div>
-
-          <div>
-            <h1 className="text-slate-400">E-mail</h1>
-            <p>{member.email}</p>
-          </div>
-
-          <div>
-            <h1 className="text-slate-400">Phone</h1>
-            <p>{member.mobile}</p>
-          </div>
-
-          <div>
-            <h1 className="text-slate-400">gender</h1>
-            <p>{member.gender}</p>
-          </div>
-
-          <div>
-            <h1 className="text-slate-400">Referral</h1>
-            <p>{member.referral}</p>
-          </div>
-        </div>
+          <Tabs
+            defaultActiveKey="1"
+            items={items}
+            className="custom-tabs"
+          />
+        </Card>
       </div>
-
-      <div>
-        <h1 className="font-bold text-3xl my-5">Transaction Summary</h1>
-      </div>
-
-      <Tabs defaultActiveKey="1" items={items} />
     </DashboardLayout>
   );
 }
-
 export default Profile;
