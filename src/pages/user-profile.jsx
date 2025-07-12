@@ -388,6 +388,11 @@ const UserProfile = () => {
                   {userInfo.fullname || 'User Name'}
                 </h3>
                 <p className="text-gray-500 mb-2">{userInfo.email || 'user@example.com'}</p>
+                {userInfo.registration_number && (
+                  <p className="text-sm font-mono bg-purple-50 text-purple-700 px-2 py-1 rounded mb-2 inline-block">
+                    ID: {userInfo.registration_number}
+                  </p>
+                )}
                 <p className="text-sm text-gray-400">
                   Member since {userStats.memberSince ? moment(userStats.memberSince).format('MMMM YYYY') : 'N/A'}
                 </p>

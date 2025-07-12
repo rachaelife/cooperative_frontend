@@ -1,7 +1,7 @@
 import axios from "axios";
 import { toast } from "sonner";
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || "http://localhost:8000",
+  baseURL: "http://localhost:8000",
   timeout: 30000, // 30 second timeout to prevent timeout errors
 });
 // Add a request interceptor to include the token dynamically
@@ -30,19 +30,28 @@ api.interceptors.response.use(
   }
 );
 export const memberServices = {
-  Newmember: async (fullname, gender, mobile, email, address, referral) => {
+  Newmember: async (fullname, gender, mobile, email, address, referral, registration_number = "") => {
     try {
-      const res = await api.post("/new/user", {
+      const requestData = {
         fullname,
         gender,
         mobile,
         email,
         address,
         referral,
-      });
+      };
+
+      // Only include registration_number if it's provided
+      if (registration_number && registration_number.trim() !== "") {
+        requestData.registration_number = registration_number.trim();
+      }
+
+      const res = await api.post("/new/user", requestData);
       toast.success(res.data.message);
+      return res.data; // Return the response data
     } catch (error) {
-      toast.error(error.response.data.message);
+      toast.error(error.response?.data?.message || "Failed to create member");
+      throw error; // Re-throw error so calling code can handle it
     }
   },
   Allmembers: async () => {
@@ -220,6 +229,30 @@ export const memberServices = {
       throw error;
     }
   },
+
+  // Generate registration numbers for existing users
+  generateRegistrationNumbers: async () => {
+    try {
+      const res = await api.post("/generate-registration-numbers");
+      toast.success(res.data.message);
+      return res.data;
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Failed to generate registration numbers");
+      throw error;
+    }
+  },
+
+  // Reset and regenerate all registration numbers sequentially from COOP001
+  resetRegistrationNumbers: async () => {
+    try {
+      const res = await api.post("/reset-registration-numbers");
+      toast.success(res.data.message);
+      return res.data;
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Failed to reset registration numbers");
+      throw error;
+    }
+  },
 };
 export const adminServices = {
   login: async (email_username, pass_word) => {
@@ -359,6 +392,24 @@ export const loanapplicationservices = {
         toast.error(error.response.data.message)
     }
   },
+
+  // Approve loan - handles approval and disbursement
+  approveLoan: async (loanId) => {
+    try {
+      const res = await api.post(`/approve-loan/${loanId}`);
+      if (res.data.success) {
+        toast.success(res.data.message);
+        return res.data;
+      } else {
+        toast.error(res.data.message);
+        throw new Error(res.data.message);
+      }
+    } catch (error) {
+      const errorMessage = error.response?.data?.message || error.message || "Failed to approve loan";
+      toast.error(errorMessage);
+      throw error;
+    }
+  },
   deleteApplication: async (loan_application_id) => {
     try {
       const res = await api.delete(`/delete/application/${loan_application_id}`);
@@ -366,6 +417,58 @@ export const loanapplicationservices = {
       return res.data;
     } catch (error) {
       const errorMessage = error.response?.data?.message || "Failed to delete loan application";
+      toast.error(errorMessage);
+      throw error;
+    }
+  },
+
+  // Simple test
+  simpleTest: async () => {
+    try {
+      const res = await api.get("/loan_application/test/simple");
+      toast.success("Simple test passed");
+      return res.data;
+    } catch (error) {
+      const errorMessage = error.response?.data?.message || "Simple test failed";
+      toast.error(errorMessage);
+      throw error;
+    }
+  },
+
+  // Test database connection
+  testConnection: async () => {
+    try {
+      const res = await api.get("/loan_application/test/connection");
+      toast.success("Database connection test passed");
+      return res.data;
+    } catch (error) {
+      const errorMessage = error.response?.data?.message || "Failed to test connection";
+      toast.error(errorMessage);
+      throw error;
+    }
+  },
+
+  // Test disbursement of approved loans
+  testDisbursement: async () => {
+    try {
+      const res = await api.post("/loan_application/test/disburse");
+      toast.success("Disbursement test completed successfully");
+      return res.data;
+    } catch (error) {
+      const errorMessage = error.response?.data?.message || "Failed to test disbursement";
+      toast.error(errorMessage);
+      throw error;
+    }
+  },
+
+  // Manual disbursement for specific application
+  manualDisburse: async (applicationId) => {
+    try {
+      const res = await api.post(`/loan_application/manual/disburse/${applicationId}`);
+      toast.success("Manual disbursement completed successfully");
+      return res.data;
+    } catch (error) {
+      const errorMessage = error.response?.data?.message || "Failed to manually disburse loan";
       toast.error(errorMessage);
       throw error;
     }
@@ -481,6 +584,18 @@ export const loanServices = {
       return res.data.message || [];
     } catch (error) {
       const errorMessage = error.response?.data?.message || "Failed to fetch loans";
+      toast.error(errorMessage);
+      return [];
+    }
+  },
+
+  // Get completed loans for repayment history
+  getCompletedLoans: async () => {
+    try {
+      const res = await api.get("/loans/completed");
+      return res.data.message || [];
+    } catch (error) {
+      const errorMessage = error.response?.data?.message || "Failed to fetch completed loans";
       toast.error(errorMessage);
       return [];
     }
@@ -657,14 +772,60 @@ export const loanRepaymentServices = {
   }
 };
 export const savingServices = {
-  // Add new savings
+  // Add new savings - simplified to match working shares pattern
   addSavings: async (user_id, amount, month_paid, payment_type, savings_type) => {
     try {
-      const res = await api.post("/new/savings", { user_id, amount, month_paid, payment_type, savings_type });
+      // Convert to proper types like shares does
+      const numericAmount = parseFloat(amount);
+      const numericUserId = parseInt(user_id);
+
+      let endpoint;
+      let payload;
+
+      // Route exactly like shares works
+      if (savings_type === 'shares') {
+        endpoint = "/new/shares";
+        payload = {
+          user_id: numericUserId,
+          amount: numericAmount,
+          payment_method: payment_type
+        };
+      } else if (savings_type === 'building') {
+        endpoint = "/new/building";
+        payload = {
+          user_id: numericUserId,
+          amount: numericAmount,
+          month_paid: month_paid,
+          payment_type: payment_type
+        };
+      } else if (savings_type === 'development') {
+        endpoint = "/new/development";
+        payload = {
+          user_id: numericUserId,
+          amount: numericAmount,
+          month_paid: month_paid,
+          payment_type: payment_type
+        };
+      } else {
+        // Default savings
+        endpoint = "/new/savings";
+        payload = {
+          user_id: numericUserId,
+          amount: numericAmount,
+          month_paid: month_paid,
+          payment_type: payment_type,
+          savings_type: savings_type
+        };
+      }
+
+      console.log(`📞 Calling ${endpoint} with:`, payload);
+      const res = await api.post(endpoint, payload);
+      console.log(`✅ Response from ${endpoint}:`, res.data);
       toast.success(res.data.message);
       return res.data;
     } catch (error) {
-      toast.error(error.response?.data?.message || "Failed to add savings");
+      console.error(`❌ API Error for ${savings_type}:`, error.response?.data);
+      toast.error(error.response?.data?.message || `Failed to add ${savings_type}`);
       throw error;
     }
   },
@@ -708,9 +869,29 @@ export const savingServices = {
   getTotalSavings: async () => {
     try {
       const res = await api.get("/savings/total");
-      return res.data.message || 0;
+      return res.data.message || { total: 0 };
     } catch (error) {
-      return 0;
+      return { total: 0 };
+    }
+  },
+
+  // Get current month savings total
+  getCurrentMonthSavings: async () => {
+    try {
+      const res = await api.get("/savings/current-month");
+      return res.data.message || { total: 0 };
+    } catch (error) {
+      return { total: 0 };
+    }
+  },
+
+  // Get average regular savings
+  getAverageRegularSavings: async () => {
+    try {
+      const res = await api.get("/savings/average-regular");
+      return res.data.message || { average: 0 };
+    } catch (error) {
+      return { average: 0 };
     }
   },
 

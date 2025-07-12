@@ -1,4 +1,4 @@
-import { toast } from 'react-toastify';
+import { toast } from 'sonner';
 // Error types
 export const ERROR_TYPES = {
   NETWORK: 'NETWORK_ERROR',
@@ -94,16 +94,16 @@ export class ErrorHandler {
     if (showToast) {
       switch (errorType) {
         case ERROR_TYPES.VALIDATION:
-          toast.error(message, { autoClose: 5000 });
+          toast.error(message);
           break;
         case ERROR_TYPES.AUTHENTICATION:
-          toast.error(message, { autoClose: 7000 });
+          toast.error(message);
           break;
         case ERROR_TYPES.NETWORK:
-          toast.error(message, { autoClose: 10000 });
+          toast.error(message);
           break;
         default:
-          toast.error(message, { autoClose: 5000 });
+          toast.error(message);
       }
     }
     // Call custom error handler
@@ -173,39 +173,15 @@ export const useErrorHandler = () => {
 };
 // Success message handler
 export const showSuccess = (message, options = {}) => {
-  const { autoClose = 3000, position = 'top-right' } = options;
-  toast.success(message, {
-    position,
-    autoClose,
-    hideProgressBar: false,
-    closeOnClick: true,
-    pauseOnHover: true,
-    draggable: true
-  });
+  toast.success(message);
 };
 // Info message handler
 export const showInfo = (message, options = {}) => {
-  const { autoClose = 4000, position = 'top-right' } = options;
-  toast.info(message, {
-    position,
-    autoClose,
-    hideProgressBar: false,
-    closeOnClick: true,
-    pauseOnHover: true,
-    draggable: true
-  });
+  toast.info(message);
 };
 // Warning message handler
 export const showWarning = (message, options = {}) => {
-  const { autoClose = 5000, position = 'top-right' } = options;
-  toast.warning(message, {
-    position,
-    autoClose,
-    hideProgressBar: false,
-    closeOnClick: true,
-    pauseOnHover: true,
-    draggable: true
-  });
+  toast.warning(message);
 };
 // Loading state manager
 export class LoadingManager {

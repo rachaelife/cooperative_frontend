@@ -71,12 +71,32 @@ function Profile() {
   });
   const { id } = useParams();
   const [previewUrl, setpreviewUrl] = useState("");
+  const [profileImage, setProfileImage] = useState(null);
+  const [imageLoading, setImageLoading] = useState(false);
+
   function getImagePreview(e) {
     const file = e.target.files[0];
     setpreviewUrl(file);
-    // const columns = [
-    // ]
   }
+
+  const handleImageUpload = async (file) => {
+    try {
+      setImageLoading(true);
+      const result = await memberServices.uploadProfileImage(id, file);
+      if (result && result.imageUrl) {
+        const fullImageUrl = `http://localhost:8000${result.imageUrl}`;
+        setProfileImage(fullImageUrl);
+        // Update member data with new image
+        setmember(prev => ({ ...prev, profile_image: result.imageUrl }));
+        toast.success("Profile image updated successfully!");
+      }
+    } catch (error) {
+      toast.error("Failed to upload profile image");
+    } finally {
+      setImageLoading(false);
+      setpreviewUrl(""); // Clear preview
+    }
+  };
   const getUserProfile = async () => {
     try {
       if (!id) {
@@ -87,7 +107,13 @@ function Profile() {
       // Fetch user profile data
       const res = await memberServices.getUser(id);
       if (res && res.length > 0) {
-        setmember(res[0]); // Set the user data to member state
+        const userData = res[0];
+        setmember(userData); // Set the user data to member state
+
+        // Set profile image if it exists
+        if (userData.profile_image) {
+          setProfileImage(`http://localhost:8000${userData.profile_image}`);
+        }
       } else {
         toast.error("User not found");
       }
@@ -177,21 +203,48 @@ function Profile() {
                     size={150}
                     src={URL.createObjectURL(previewUrl)}
                     className="border-4 border-blue-200 shadow-lg"
+                    style={{ opacity: imageLoading ? 0.6 : 1 }}
                   />
                 ) : (
                   <Avatar
                     size={150}
+                    src={profileImage}
                     icon={<UserOutlined />}
                     className="bg-gray-200 border-4 border-gray-300 shadow-lg"
+                    style={{ opacity: imageLoading ? 0.6 : 1 }}
                   />
                 )}
+
+                {/* Loading overlay */}
+                {imageLoading && (
+                  <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-30 rounded-full">
+                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-white"></div>
+                  </div>
+                )}
+
                 <Upload
                   showUploadList={false}
                   beforeUpload={(file) => {
+                    // Validate file type
+                    const isImage = file.type.startsWith('image/');
+                    if (!isImage) {
+                      toast.error('You can only upload image files!');
+                      return false;
+                    }
+
+                    // Validate file size (5MB)
+                    const isLt5M = file.size / 1024 / 1024 < 5;
+                    if (!isLt5M) {
+                      toast.error('Image must be smaller than 5MB!');
+                      return false;
+                    }
+
                     setpreviewUrl(file);
-                    return false;
+                    handleImageUpload(file);
+                    return false; // Prevent default upload
                   }}
                   accept="image/*"
+                  disabled={imageLoading}
                 >
                   <Button
                     type="primary"
@@ -199,6 +252,8 @@ function Profile() {
                     icon={<CameraOutlined />}
                     className="absolute bottom-2 right-2 bg-blue-600 hover:bg-blue-700"
                     size="large"
+                    loading={imageLoading}
+                    title="Upload Profile Picture"
                   />
                 </Upload>
               </div>
@@ -215,6 +270,17 @@ function Profile() {
             </Col>
             <Col xs={24} md={8}>
               <div className="space-y-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-5 h-5 bg-purple-500 rounded flex items-center justify-center">
+                    <span className="text-white text-xs font-bold">ID</span>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-500">Registration Number</p>
+                    <p className="font-mono font-medium bg-purple-50 text-purple-700 px-2 py-1 rounded text-sm">
+                      {member.registration_number || 'N/A'}
+                    </p>
+                  </div>
+                </div>
                 <div className="flex items-center gap-3">
                   <MailOutlined className="text-blue-500 text-lg" />
                   <div>

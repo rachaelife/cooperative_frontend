@@ -23,8 +23,10 @@ const UserDashboardLayout = ({ children }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const { user, logout, loading, isAuthenticated } = useAuth();
+  
   // Enable session timeout monitoring (30 minutes)
   useSessionTimeout(30);
+
   // Redirect to login if not authenticated
   useEffect(() => {
     if (!loading && !isAuthenticated) {
@@ -35,6 +37,7 @@ const UserDashboardLayout = ({ children }) => {
     logout();
     navigate('/user/login');
   };
+  
   // Show loading spinner while checking authentication
   if (loading) {
     return (
@@ -104,11 +107,11 @@ const UserDashboardLayout = ({ children }) => {
         },
       ],
     },
-    {
-      key: '/user/applications',
-      icon: <FileTextOutlined />,
-      label: 'My Applications',
-    },
+    // {
+    //   key: '/user/applications',
+    //   icon: <FileTextOutlined />,
+    //   label: 'My Applications',
+    // },
     {
       key: '/user/profile',
       icon: <UserOutlined />,

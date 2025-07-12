@@ -48,6 +48,9 @@ const [currentsavings, setCurrentSavings] = useState({
   const [editOpen, setEditOpen] = useState(false);
   const [members, setmembers] = useState([]);
   const [totalSavings, setTotalSavings] = useState(0);
+  const [currentMonthSavings, setCurrentMonthSavings] = useState(0);
+  const [averageRegularSavings, setAverageRegularSavings] = useState(0);
+
   // Open edit modal
   const openEditModal = (savings) => {
     // Ensure we have the correct field names
@@ -58,6 +61,7 @@ const [currentsavings, setCurrentSavings] = useState({
     setCurrentSavings(normalizedSavings);
     setEditOpen(true);
   };
+
   // Update savings function
   const updatesavings = async () => {
     try {
@@ -90,6 +94,8 @@ const [currentsavings, setCurrentSavings] = useState({
       }
     }
   };
+
+
    const handleDelete = async (savings_id) => {
     try {
       await savingServices.deleteSavings(savings_id);
@@ -106,6 +112,7 @@ const [currentsavings, setCurrentSavings] = useState({
     const [searchQuery, setSearchQuery] = useState("");
     const [typeFilter, setTypeFilter] = useState("all");
     const [isSearching, setIsSearching] = useState(false);
+
   const [newSavings, setNewSavings] = useState({
     user_id:"",
     amount: "",
@@ -113,34 +120,50 @@ const [currentsavings, setCurrentSavings] = useState({
     payment_type: "",
     savings_type: "",
   });
+
   const fetchAllMember = async () => {
     const data = await memberServices.Allmembers();
     setmembers(data);
   };
+
    useEffect(() => {
     fetchAllMember();
   }, []);
+
   const fetchSavings = async () => {
     try {
       const res = await savingServices.getAllSavings();
-      const data = await savingServices.getTotalSavings();
-      setTotalSavings(data || 0);
-      setSavings(res); // Make sure your backend returns an array
-      setFilteredSavings(res); // Initialize filtered savings
+      // Filter to show only regular savings on this page
+      const regularSavings = res.filter(saving => saving.savings_type === 'savings');
+
+      const totalData = await savingServices.getTotalSavings();
+      const currentMonthData = await savingServices.getCurrentMonthSavings();
+      const averageData = await savingServices.getAverageRegularSavings();
+
+      setTotalSavings(totalData?.total || 0);
+      setCurrentMonthSavings(currentMonthData?.total || 0);
+      setAverageRegularSavings(averageData?.average || 0);
+      setSavings(regularSavings); // Only regular savings
+      setFilteredSavings(regularSavings); // Initialize filtered savings with regular savings only
     } catch (error) {
       toast.error("Failed to fetch savings data");
     }
   };
-  // Search functionality
+
+  // Enhanced search functionality with comprehensive search capabilities
   const handleSearch = async (query) => {
     setSearchQuery(query);
     setIsSearching(true);
     try {
       if (query.trim() === "") {
+        // Reset to all regular savings
         setFilteredSavings(savings);
       } else {
+        // Use enhanced API search that covers name, amount, month, payment type, date
         const searchResults = await savingServices.searchSavings(query);
-        setFilteredSavings(searchResults);
+        // Filter search results to only regular savings (backend already does this, but double-check)
+        const regularSearchResults = searchResults.filter(saving => saving.savings_type === 'savings');
+        setFilteredSavings(regularSearchResults);
       }
     } catch (error) {
       toast.error("Search failed");
@@ -148,6 +171,9 @@ const [currentsavings, setCurrentSavings] = useState({
       setIsSearching(false);
     }
   };
+
+
+
   // Filter functionality
   const handleFilter = async (filter) => {
     setTypeFilter(filter);
@@ -171,6 +197,7 @@ const [currentsavings, setCurrentSavings] = useState({
       toast.error("Filter failed");
     }
   };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
@@ -187,9 +214,12 @@ const [currentsavings, setCurrentSavings] = useState({
       toast.error("Failed to add savings");
     }
   };
+
   useEffect(() => {
     fetchSavings();
   }, []);
+
+
   return (
     <DashboardLayout>
       <div className="p-6">
@@ -200,13 +230,15 @@ const [currentsavings, setCurrentSavings] = useState({
             <p className="text-gray-600">Track and manage member savings contributions</p>
           </Fade>
         </div>
+
+
         {/* Statistics Cards */}
         <Row gutter={[16, 16]} className="mb-8">
           <Col xs={24} sm={12} md={8} lg={6}>
             <Card className="bg-gradient-to-r from-green-500 to-green-600 text-white border-0 shadow-lg hover:shadow-xl transition-shadow">
               <Statistic
-                title={<span className="text-green-100">Total Savings</span>}
-                value={totalSavings ? totalSavings.total : 0}
+                title={<span className="text-green-100">Regular Savings Balance</span>}
+                value={totalSavings || 0}
                 prefix={<MdOutlineSavings className="text-green-200" />}
                 valueStyle={{ color: '#fff', fontSize: '1.3rem', fontWeight: 'bold' }}
                 formatter={(value) => `₦${Number(value).toLocaleString()}`}
@@ -216,19 +248,20 @@ const [currentsavings, setCurrentSavings] = useState({
           <Col xs={24} sm={12} md={8} lg={6}>
             <Card className="bg-gradient-to-r from-blue-500 to-blue-600 text-white border-0 shadow-lg hover:shadow-xl transition-shadow">
               <Statistic
-                title={<span className="text-blue-100">Total Records</span>}
-                value={savings.length || 0}
-                prefix={<MdAccountBalance className="text-blue-200" />}
+                title={<span className="text-blue-100">Current Month Regular</span>}
+                value={currentMonthSavings || 0}
+                prefix={<MdCalendarToday className="text-blue-200" />}
                 valueStyle={{ color: '#fff', fontSize: '1.3rem', fontWeight: 'bold' }}
+                formatter={(value) => `₦${Number(value).toLocaleString()}`}
               />
             </Card>
           </Col>
           <Col xs={24} sm={12} md={8} lg={6}>
             <Card className="bg-gradient-to-r from-purple-500 to-purple-600 text-white border-0 shadow-lg hover:shadow-xl transition-shadow">
               <Statistic
-                title={<span className="text-purple-100">This Month</span>}
-                value={savings.filter(s => s.month_paid === new Date().toLocaleString('default', { month: 'long' })).length || 0}
-                prefix={<MdCalendarToday className="text-purple-200" />}
+                title={<span className="text-purple-100">Regular Savings Records</span>}
+                value={savings.length || 0}
+                prefix={<MdAccountBalance className="text-purple-200" />}
                 valueStyle={{ color: '#fff', fontSize: '1.3rem', fontWeight: 'bold' }}
               />
             </Card>
@@ -236,8 +269,8 @@ const [currentsavings, setCurrentSavings] = useState({
           <Col xs={24} sm={12} md={8} lg={6}>
             <Card className="bg-gradient-to-r from-orange-500 to-orange-600 text-white border-0 shadow-lg hover:shadow-xl transition-shadow">
               <Statistic
-                title={<span className="text-orange-100">Average</span>}
-                value={savings.length > 0 ? (totalSavings ? totalSavings.total : 0) / savings.length : 0}
+                title={<span className="text-orange-100">Avg Regular Savings</span>}
+                value={averageRegularSavings || 0}
                 prefix={<MdTrendingUp className="text-orange-200" />}
                 valueStyle={{ color: '#fff', fontSize: '1.3rem', fontWeight: 'bold' }}
                 formatter={(value) => `₦${Number(value).toLocaleString()}`}
@@ -245,6 +278,7 @@ const [currentsavings, setCurrentSavings] = useState({
             </Card>
           </Col>
         </Row>
+
         {/* Action Bar */}
         <Card className="mb-6 shadow-md">
           <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
@@ -265,6 +299,7 @@ const [currentsavings, setCurrentSavings] = useState({
             </Space>
           </div>
         </Card>
+
         {/* Search and Filter Section */}
         <Card className="mb-6 shadow-md">
           <Row gutter={[16, 16]}>
@@ -272,13 +307,14 @@ const [currentsavings, setCurrentSavings] = useState({
               <div className="flex flex-col gap-2">
                 <label className="text-sm font-medium text-gray-700">Search Savings</label>
                 <Input
-                  placeholder="Search by member name, amount, or type..."
+                  placeholder="Search by name, exact amount, month, payment type, date..."
                   prefix={<SearchOutlined className="text-gray-400" />}
                   size="large"
                   className="rounded-lg"
                   value={searchQuery}
                   onChange={(e) => handleSearch(e.target.value)}
                   loading={isSearching}
+                  allowClear
                 />
               </div>
             </Col>
@@ -302,6 +338,7 @@ const [currentsavings, setCurrentSavings] = useState({
             </Col>
           </Row>
         </Card>
+
         {/* Enhanced Add Savings Modal */}
         <Modal
           title={
@@ -442,6 +479,7 @@ const [currentsavings, setCurrentSavings] = useState({
             </div>
           </form>
         </Modal>
+
         {/* Edit Savings Modal */}
         <Modal
           title="Edit Savings"
@@ -514,6 +552,8 @@ const [currentsavings, setCurrentSavings] = useState({
             </div>
           </form>
         </Modal>
+
+
         {/* Enhanced Savings Table */}
         <Card className="shadow-lg">
           <Table
@@ -665,6 +705,7 @@ const [currentsavings, setCurrentSavings] = useState({
             className="custom-table"
           />
         </Card>
+        
       </div>
     </DashboardLayout>
   );

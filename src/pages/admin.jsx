@@ -41,6 +41,8 @@ import {
   SafetyOutlined
 } from '@ant-design/icons';
 import { Fade } from "react-awesome-reveal";
+
+
 function Adminpage() {
   const [open, setOPen] = useState(false);
   const [admins, setAdmins] = useState([]);
@@ -51,6 +53,7 @@ const openEditModal = (admin) => {
   setCurrentAdmin(admin); // this sets the admin to be edited
   setEditOpen(true);      // show the modal
 };
+
   const updateAdmin = async () => {
   try {
     await adminServices.Updateadmin(currentAdmin);
@@ -61,6 +64,7 @@ const openEditModal = (admin) => {
     toast.error("Failed to update admin");
   }
 };
+
   //colunm for table
   const columns = [
     {
@@ -115,6 +119,7 @@ const openEditModal = (admin) => {
       ),
     },
   ];
+
   //handledelete button
   const handleDelete = async (admin_id) => {
     try {
@@ -125,6 +130,7 @@ const openEditModal = (admin) => {
       toast.error("Failed to delete admin");
     }
   };
+
   const [admin, setAdmin] = useState({
     username: "",
     email: "",
@@ -132,6 +138,7 @@ const openEditModal = (admin) => {
     mobile: "",
     pass_word: "",
   });
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     const data = await adminServices.Newadmin(
@@ -141,6 +148,7 @@ const openEditModal = (admin) => {
       admin.mobile,
       admin.pass_word
     );
+
     if (data) {
       toast.success("Admin added!");
       setOPen(false);
@@ -154,6 +162,7 @@ const openEditModal = (admin) => {
       getAlladmin(); // <== Refresh the list
     }
   };
+  
   const getAlladmin = async () => {
     const res = await adminServices.Alladmin();
     setAdmins(res);

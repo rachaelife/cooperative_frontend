@@ -4,7 +4,7 @@ import { UserOutlined, EditOutlined, CheckOutlined, CloseOutlined } from "@ant-d
 import { toast } from "sonner";
 import moment from "moment";
 
-const AdminRepaymentManagement = () => {
+const AdminRepaymentManagement = ({ refreshTrigger = 0 }) => {
   const [repayments, setRepayments] = useState([]);
   const [loading, setLoading] = useState(false);
   const [editModalVisible, setEditModalVisible] = useState(false);
@@ -37,7 +37,7 @@ const AdminRepaymentManagement = () => {
 
   useEffect(() => {
     fetchRepayments();
-  }, []);
+  }, [refreshTrigger]); // Refresh when trigger changes
 
   // Helper function to get status color
   const getStatusColor = (status) => {

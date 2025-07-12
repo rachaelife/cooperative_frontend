@@ -165,11 +165,97 @@ const Shares = () => {
     }
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    console.log("Submitting shares:", newSavings);
+  // Test basic connectivity
+  const testBasicConnectivity = async () => {
     try {
-      await savingServices.addsavings(
+      console.log("🔍 Testing basic connectivity...");
+
+      // Test 1: Check if backend is running
+      const response = await fetch('http://localhost:8000/health');
+      console.log("📊 Health check response:", response.status);
+
+      if (response.ok) {
+        toast.success("✅ Backend is running!");
+      } else {
+        toast.error("❌ Backend health check failed");
+      }
+
+      // Test 2: Check token
+      const token = localStorage.getItem("token");
+      console.log("🔑 Token exists:", !!token);
+
+      if (!token) {
+        toast.warning("⚠️ No authentication token found");
+      } else {
+        toast.info("🔑 Token found");
+      }
+
+    } catch (error) {
+      console.error("❌ Connectivity test failed:", error);
+      toast.error("❌ Cannot connect to backend");
+    }
+  };
+
+  // Test API function
+  const testSharesAPI = async () => {
+    try {
+      console.log("🧪 Testing shares API...");
+      console.log("🔍 Current token:", localStorage.getItem("token"));
+
+      const testData = {
+        user_id: "1", // Test with user ID 1
+        amount: "1000",
+        month_paid: "January",
+        payment_type: "cash",
+        savings_type: "shares"
+      };
+
+      console.log("📞 About to call API with:", testData);
+
+      const result = await savingServices.addSavings(
+        testData.user_id,
+        testData.amount,
+        testData.month_paid,
+        testData.payment_type,
+        testData.savings_type
+      );
+
+      console.log("✅ Test successful:", result);
+      fetchShares(); // Refresh data
+    } catch (error) {
+      console.error("❌ Test failed:", error);
+      console.error("❌ Error details:", {
+        message: error.message,
+        response: error.response?.data,
+        status: error.response?.status,
+        stack: error.stack
+      });
+
+      // Don't let the error propagate and cause navigation
+      toast.error("Test failed: " + (error.response?.data?.message || error.message));
+    }
+  };
+
+  const handleSubmit = async (e) => {
+    try {
+      e.preventDefault();
+      console.log("🔍 Submitting shares:", newSavings);
+
+      // Basic validation
+      if (!newSavings.user_id || !newSavings.amount || !newSavings.payment_type) {
+        toast.error("Please fill in all required fields");
+        return;
+      }
+
+      console.log("📞 Calling API with:", {
+        user_id: newSavings.user_id,
+        amount: newSavings.amount,
+        month_paid: newSavings.month_paid,
+        payment_type: newSavings.payment_type,
+        savings_type: newSavings.savings_type
+      });
+
+      const result = await savingServices.addSavings(
         newSavings.user_id,
         newSavings.amount,
         newSavings.month_paid,
@@ -177,17 +263,25 @@ const Shares = () => {
         newSavings.savings_type
       );
 
+      console.log("✅ API Response:", result);
+
       setNewSavings({
         user_id: "",
         amount: "",
         month_paid: "",
         payment_type: "",
-        savings_type: "",
+        savings_type: "shares",
       });
-      fetchShares();
-      console.log(newSavings);
+      setOPen(false); // Close the modal
+      fetchShares(); // Refresh the data
+      console.log("✅ Shares added successfully!");
     } catch (error) {
-      toast.error("Failed to add shares");
+      console.error("❌ Error adding shares:", error);
+      console.error("❌ Error details:", error.response?.data);
+      toast.error("Failed to add shares: " + (error.response?.data?.message || error.message));
+
+      // Prevent error from bubbling up to ErrorBoundary
+      return false;
     }
   };
 
@@ -273,6 +367,7 @@ const Shares = () => {
               >
                 Add New Shares
               </Button>
+
             </Space>
           </div>
         </Card>
@@ -349,6 +444,7 @@ const Shares = () => {
                         </div>
                       ),
                       value: `${member.user_id} ${member.fullname}`,
+                      searchText: member.fullname, // Add searchable text
                     }))}
                     onChange={(value) => {
                       setMember(value.split(" ")[1]);
@@ -358,7 +454,8 @@ const Shares = () => {
                       });
                     }}
                     filterOption={(inputValue, option) =>
-                      option.label.toLowerCase().includes(inputValue.toLowerCase())
+                      option.searchText?.toLowerCase().includes(inputValue.toLowerCase()) ||
+                      option.value?.toLowerCase().includes(inputValue.toLowerCase())
                     }
                   />
                 </div>

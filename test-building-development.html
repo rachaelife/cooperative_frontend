@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Building & Development APIs</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test-section { margin: 20px 0; padding: 15px; border: 1px solid #ccc; }
+        button { padding: 10px 15px; margin: 5px; cursor: pointer; }
+        .success { color: green; }
+        .error { color: red; }
+        .info { color: blue; }
+        #results { margin-top: 20px; padding: 10px; background: #f5f5f5; }
+    </style>
+</head>
+<body>
+    <h1>🧪 Building & Development API Test</h1>
+    
+    <div class="test-section">
+        <h3>🏗️ Building API Test</h3>
+        <button onclick="testBuildingAPI()">Test Building Endpoint</button>
+        <button onclick="testBuildingWithAuth()">Test Building with Auth</button>
+    </div>
+    
+    <div class="test-section">
+        <h3>🚀 Development API Test</h3>
+        <button onclick="testDevelopmentAPI()">Test Development Endpoint</button>
+        <button onclick="testDevelopmentWithAuth()">Test Development with Auth</button>
+    </div>
+    
+    <div class="test-section">
+        <h3>🔍 Backend Health Check</h3>
+        <button onclick="testBackendHealth()">Test Backend Health</button>
+        <button onclick="testAllEndpoints()">Test All Endpoints</button>
+    </div>
+    
+    <div id="results"></div>
+
+    <script>
+        const API_BASE = 'http://localhost:8000';
+        const resultsDiv = document.getElementById('results');
+        
+        function log(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            const div = document.createElement('div');
+            div.className = type;
+            div.innerHTML = `[${timestamp}] ${message}`;
+            resultsDiv.appendChild(div);
+            resultsDiv.scrollTop = resultsDiv.scrollHeight;
+        }
+        
+        function getToken() {
+            return localStorage.getItem('token') || 'test-token';
+        }
+        
+        async function testBackendHealth() {
+            log('🔍 Testing backend health...', 'info');
+            try {
+                const response = await fetch(`${API_BASE}/health`);
+                const data = await response.text();
+                log(`✅ Backend health: ${response.status} - ${data}`, 'success');
+            } catch (error) {
+                log(`❌ Backend health failed: ${error.message}`, 'error');
+            }
+        }
+        
+        async function testBuildingAPI() {
+            log('🏗️ Testing building API...', 'info');
+            try {
+                const payload = {
+                    user_id: 1,
+                    amount: 5000,
+                    month_paid: "January",
+                    payment_type: "cash"
+                };
+                
+                log(`📞 POST ${API_BASE}/new/building`, 'info');
+                log(`📦 Payload: ${JSON.stringify(payload)}`, 'info');
+                
+                const response = await fetch(`${API_BASE}/new/building`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(payload)
+                });
+                
+                const responseText = await response.text();
+                log(`📊 Response: ${response.status} ${response.statusText}`, response.ok ? 'success' : 'error');
+                log(`📄 Body: ${responseText}`, response.ok ? 'success' : 'error');
+                
+            } catch (error) {
+                log(`❌ Building API error: ${error.message}`, 'error');
+            }
+        }
+        
+        async function testBuildingWithAuth() {
+            log('🏗️ Testing building API with auth...', 'info');
+            try {
+                const payload = {
+                    user_id: 1,
+                    amount: 5000,
+                    month_paid: "January",
+                    payment_type: "cash"
+                };
+                
+                const response = await fetch(`${API_BASE}/new/building`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${getToken()}`
+                    },
+                    body: JSON.stringify(payload)
+                });
+                
+                const responseText = await response.text();
+                log(`📊 Building with auth: ${response.status} ${response.statusText}`, response.ok ? 'success' : 'error');
+                log(`📄 Body: ${responseText}`, response.ok ? 'success' : 'error');
+                
+            } catch (error) {
+                log(`❌ Building with auth error: ${error.message}`, 'error');
+            }
+        }
+        
+        async function testDevelopmentAPI() {
+            log('🚀 Testing development API...', 'info');
+            try {
+                const payload = {
+                    user_id: 1,
+                    amount: 3000,
+                    month_paid: "January",
+                    payment_type: "cash"
+                };
+                
+                log(`📞 POST ${API_BASE}/new/development`, 'info');
+                log(`📦 Payload: ${JSON.stringify(payload)}`, 'info');
+                
+                const response = await fetch(`${API_BASE}/new/development`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(payload)
+                });
+                
+                const responseText = await response.text();
+                log(`📊 Response: ${response.status} ${response.statusText}`, response.ok ? 'success' : 'error');
+                log(`📄 Body: ${responseText}`, response.ok ? 'success' : 'error');
+                
+            } catch (error) {
+                log(`❌ Development API error: ${error.message}`, 'error');
+            }
+        }
+        
+        async function testDevelopmentWithAuth() {
+            log('🚀 Testing development API with auth...', 'info');
+            try {
+                const payload = {
+                    user_id: 1,
+                    amount: 3000,
+                    month_paid: "January",
+                    payment_type: "cash"
+                };
+                
+                const response = await fetch(`${API_BASE}/new/development`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${getToken()}`
+                    },
+                    body: JSON.stringify(payload)
+                });
+                
+                const responseText = await response.text();
+                log(`📊 Development with auth: ${response.status} ${response.statusText}`, response.ok ? 'success' : 'error');
+                log(`📄 Body: ${responseText}`, response.ok ? 'success' : 'error');
+                
+            } catch (error) {
+                log(`❌ Development with auth error: ${error.message}`, 'error');
+            }
+        }
+        
+        async function testAllEndpoints() {
+            log('🧪 === COMPREHENSIVE API TEST ===', 'info');
+            await testBackendHealth();
+            await new Promise(resolve => setTimeout(resolve, 500));
+            await testBuildingAPI();
+            await new Promise(resolve => setTimeout(resolve, 500));
+            await testBuildingWithAuth();
+            await new Promise(resolve => setTimeout(resolve, 500));
+            await testDevelopmentAPI();
+            await new Promise(resolve => setTimeout(resolve, 500));
+            await testDevelopmentWithAuth();
+            log('🎉 === TEST COMPLETED ===', 'info');
+        }
+        
+        // Auto-run health check on page load
+        window.onload = () => {
+            log('🚀 API Test Page Loaded', 'info');
+            testBackendHealth();
+        };
+    </script>
+</body>
+</html>

@@ -43,9 +43,11 @@ import {
   RocketOutlined
 } from '@ant-design/icons';
 import { Fade } from "react-awesome-reveal";
+import SimpleDevelopmentForm from "../components/SimpleDevelopmentForm";
 
 const Development = () => {
   const [open, setOPen] = useState(false);
+  const [simpleFormOpen, setSimpleFormOpen] = useState(false);
   const [members, setmembers] = useState([]);
 
   const [editOpen, setEditOpen] = useState(false);
@@ -174,11 +176,28 @@ const Development = () => {
     }
   };
 
+
+
   const handleSubmit = async (e) => {
-    e.preventDefault();
-    console.log("Submitting shares:", newSavings);
     try {
-      await savingServices.addsavings(
+      e.preventDefault();
+      console.log("🚀 Submitting development savings:", newSavings);
+
+      // Basic validation - exactly like shares
+      if (!newSavings.user_id || !newSavings.amount || !newSavings.month_paid || !newSavings.payment_type) {
+        toast.error("Please fill in all required fields");
+        return;
+      }
+
+      console.log("📞 Calling API with:", {
+        user_id: newSavings.user_id,
+        amount: newSavings.amount,
+        month_paid: newSavings.month_paid,
+        payment_type: newSavings.payment_type,
+        savings_type: newSavings.savings_type
+      });
+
+      const result = await savingServices.addSavings(
         newSavings.user_id,
         newSavings.amount,
         newSavings.month_paid,
@@ -186,17 +205,25 @@ const Development = () => {
         newSavings.savings_type
       );
 
+      console.log("✅ API Response:", result);
+
       setNewSavings({
         user_id: "",
         amount: "",
         month_paid: "",
         payment_type: "",
-        savings_type: "",
+        savings_type: "development",
       });
-      fetchdevelopment();
-      console.log(newSavings);
+      setOPen(false); // Close the modal
+      fetchdevelopment(); // Refresh the data
+      console.log("✅ Development savings added successfully!");
     } catch (error) {
-      toast.error("Failed to add development");
+      console.error("❌ Error adding development savings:", error);
+      console.error("❌ Error details:", error.response?.data);
+      toast.error("Failed to add development savings: " + (error.response?.data?.message || error.message));
+
+      // Prevent error from bubbling up to ErrorBoundary
+      return false;
     }
   };
 
@@ -282,6 +309,14 @@ const Development = () => {
               >
                 Add Development Contribution
               </Button>
+              <Button
+                onClick={() => setSimpleFormOpen(true)}
+                className="bg-blue-600 hover:bg-blue-700 text-white"
+                size="large"
+              >
+                🧪 Simple Test Form
+              </Button>
+
             </Space>
           </div>
         </Card>
@@ -358,6 +393,7 @@ const Development = () => {
                         </div>
                       ),
                       value: `${member.user_id} ${member.fullname}`,
+                      searchText: member.fullname, // Add searchable text
                     }))}
                     onChange={(value) => {
                       setMember(value.split(" ")[1]);
@@ -367,7 +403,8 @@ const Development = () => {
                       });
                     }}
                     filterOption={(inputValue, option) =>
-                      option.label.toLowerCase().includes(inputValue.toLowerCase())
+                      option.searchText?.toLowerCase().includes(inputValue.toLowerCase()) ||
+                      option.value?.toLowerCase().includes(inputValue.toLowerCase())
                     }
                   />
                 </div>
@@ -679,6 +716,13 @@ const Development = () => {
             className="custom-table"
           />
         </Card>
+
+        {/* Simple Test Form */}
+        <SimpleDevelopmentForm
+          visible={simpleFormOpen}
+          onClose={() => setSimpleFormOpen(false)}
+          onSuccess={() => fetchdevelopment()}
+        />
       </div>
     </DashboardLayout>
   );

@@ -3,13 +3,34 @@ import React, { useEffect, useState } from "react";
 import { loanapplicationservices } from "../services/api";
 import { BiTrash, BiEdit } from "react-icons/bi";
 import { MdDelete, MdEdit, MdPerson, MdAttachMoney, MdSchedule, MdDescription } from "react-icons/md";
-import { UserOutlined, DeleteOutlined, EditOutlined } from "@ant-design/icons";
+import { UserOutlined, DeleteOutlined, EditOutlined, CheckOutlined } from "@ant-design/icons";
 import { toast } from "sonner";
 import moment from "moment";
 
-function Loanapp() {
+function Loanapp({ refreshTrigger = 0, onStatusUpdate = null }) {
+  const [loading, setLoading] = useState(false);
+  const [applications, setApplications] = useState([]);
 
+  // Handle approve loan
+  const handleApproveLoan = async (loanId) => {
+    setLoading(true);
+    try {
+      const result = await loanapplicationservices.approveLoan(loanId);
 
+      // Refresh the applications list
+      setTimeout(() => {
+        getAllapplication();
+        if (onStatusUpdate) {
+          onStatusUpdate();
+        }
+      }, 1000);
+
+    } catch (error) {
+      console.error("Approve loan error:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // Helper function to get status color
   const getStatusColor = (status) => {
@@ -126,21 +147,31 @@ function Loanapp() {
     {
       title: "Actions",
       key: "action",
-      width: 150,
+      width: 200,
       align: 'center',
       render: (_, record) => (
-        <Space size="small">
-          <Tooltip title="Edit Application">
+        <Space size="small" wrap>
+          {record.loan_status === 'pending' && (
             <Button
               type="primary"
               size="small"
-              icon={<EditOutlined />}
-              onClick={() => openEditModal(record)}
-              className="bg-blue-600 hover:bg-blue-700"
+              icon={<CheckOutlined />}
+              onClick={() => handleApproveLoan(record.loan_application_id)}
+              className="bg-green-600 hover:bg-green-700"
+              loading={loading}
             >
-              Edit
+              Approve
             </Button>
-          </Tooltip>
+          )}
+          <Button
+            type="primary"
+            size="small"
+            icon={<EditOutlined />}
+            onClick={() => openEditModal(record)}
+            className="bg-blue-600 hover:bg-blue-700"
+          >
+            Edit
+          </Button>
           <Popconfirm
             title="Delete Application"
             description="Are you sure you want to delete this loan application?"
@@ -149,23 +180,20 @@ function Loanapp() {
             cancelText="Cancel"
             okButtonProps={{ danger: true }}
           >
-            <Tooltip title="Delete Application">
-              <Button
-                danger
-                size="small"
-                icon={<DeleteOutlined />}
-              >
-                Delete
-              </Button>
-            </Tooltip>
+            <Button
+              danger
+              size="small"
+              icon={<DeleteOutlined />}
+            >
+              Delete
+            </Button>
           </Popconfirm>
         </Space>
       ),
     },
   ];
 
-  const [applications, setapplication] = useState([]);
-    const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isModalOpen, setIsModalOpen] = useState(false);
   const [loan_application, setloan_application] = useState(null);
   const [newStatus, setNewStatus] = useState("");
 
@@ -177,13 +205,13 @@ function Loanapp() {
       console.log("📊 Applications received:", res);
 
       // Ensure we always set an array
-      const applications = Array.isArray(res) ? res : [];
-      setapplication(applications);
+      const applicationsData = Array.isArray(res) ? res : [];
+      setApplications(applicationsData);
 
-      console.log("✅ Applications set to state:", applications.length);
+      console.log("✅ Applications set to state:", applicationsData.length);
     } catch (error) {
       console.error("❌ Error in getAllapplication:", error);
-      setapplication([]); // Set empty array on error
+      setApplications([]); // Set empty array on error
     }
   };
 
@@ -191,7 +219,7 @@ function Loanapp() {
 
   useEffect(() => {
     getAllapplication();
-  }, []);
+  }, [refreshTrigger]); // Refresh when trigger changes
 
   
 
@@ -205,23 +233,36 @@ function Loanapp() {
 
 
   const handleStatusUpdate = async () => {
-  try {
-    await loanapplicationservices.updateapplication(loan_application.loan_application_id, {
-      loan_status: newStatus,
-    });
-    toast.success("Loan status updated");
-    getAllapplication(); // Refresh table
-    setIsModalOpen(false);
-  } catch (error) {
-    console.error(error);
-    toast.error("Failed to update loan status");
-  }
-  // getAllapplication(); 
-};
+    try {
+      await loanapplicationservices.updateapplication(loan_application.loan_application_id, {
+        loan_status: newStatus,
+      });
+
+      if (newStatus === 'approved') {
+        toast.success("Loan approved and automatically disbursed!");
+      } else {
+        toast.success("Loan status updated successfully");
+      }
+
+      // Refresh the applications list
+      setTimeout(() => {
+        getAllapplication();
+        if (onStatusUpdate) {
+          onStatusUpdate();
+        }
+      }, 1000);
+
+      setIsModalOpen(false);
+    } catch (error) {
+      console.error("Status update error:", error);
+      toast.error("Failed to update loan status");
+    }
+  };
 
 
   return (
     <>
+
 
     <Modal
   title="Edit Loan Status"
@@ -230,17 +271,25 @@ function Loanapp() {
   onOk={handleStatusUpdate}
   okText="Update"
 >
-  <Select
-    className="w-full"
-    value={newStatus}
-    onChange={(value) => setNewStatus(value)}
-    options={[
-      { value: "pending", label: "Pending" },
-      { value: "approved", label: "Approved" },
-      { value: "rejected", label: "Rejected" },
-       { value: "completed", label: "completed" }
-    ]}
-  />
+  <div>
+    <Select
+      className="w-full mb-2"
+      value={newStatus}
+      onChange={(value) => setNewStatus(value)}
+      options={[
+        { value: "pending", label: "Pending" },
+        { value: "approved", label: "Approved (Auto-disburses)" },
+        { value: "rejected", label: "Rejected" },
+        { value: "disbursed", label: "Disbursed" },
+        { value: "completed", label: "Completed" }
+      ]}
+    />
+    {newStatus === 'approved' && (
+      <div className="text-sm text-blue-600 bg-blue-50 p-2 rounded">
+        ℹ️ Note: Approving this loan will automatically move it to the disbursed loans table.
+      </div>
+    )}
+  </div>
 </Modal>
 
       <Table

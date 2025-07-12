@@ -12,17 +12,16 @@ import {
   Statistic,
   Space,
   Tag,
-  Avatar,
-  Tooltip
+  Avatar
 } from "antd";
 import "../styles/table.css";
-import { CgAdd } from "react-icons/cg";
 import { useEffect, useState } from "react";
 import Loans from "../components/loans";
 import Loanapp from "../components/loanapp";
 import { loanapplicationservices, memberServices, loanServices } from "../services/api";
 import RepaymentHistory from "../components/repayment-history";
 import AdminRepaymentManagement from "../components/admin-repayment-management";
+import { toast } from "sonner";
 import {
   MdAccountBalance,
   MdAssignment,
@@ -37,9 +36,7 @@ import {
   PlusOutlined,
   UserOutlined,
   SearchOutlined,
-  FilterOutlined,
   DollarOutlined,
-  CalendarOutlined,
   FileTextOutlined,
   BankOutlined
 } from '@ant-design/icons';
@@ -51,6 +48,28 @@ function Loan() {
   const [loanapplication, setloanapplication] = useState(false);
   const [members, setmembers] = useState([]);
   const [loadingMembers, setLoadingMembers] = useState(false);
+
+  // Refresh triggers for child components
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
+  const [pageLoading, setPageLoading] = useState(true);
+  const [pageError, setPageError] = useState(null);
+
+  // Loan Statistics State
+  const [loanStats, setLoanStats] = useState({
+    activeLoans: 0,
+    totalDisbursed: 0,
+    totalApplications: 0,
+    pendingApplications: 0,
+    loading: true
+  });
+
+  // Loan Calculator State
+  const [calculator, setCalculator] = useState({
+    loanAmount: "",
+    loanTerm: "",
+    showCalculation: false,
+    repaymentSchedule: []
+  });
   const [loanDisbursement, setLoanDisbursement] = useState({
     user_id: "",
     amount_disbursed: "",
@@ -106,26 +125,39 @@ function Loan() {
     },
   ]
 
+  // Function to refresh all loan data - defined before items array
+  const refreshAllLoanData = () => {
+    try {
+      console.log("🔄 Refreshing all loan data...");
+      fetchLoanStatistics();
+      setRefreshTrigger(prev => prev + 1); // This will trigger child components to refresh
+      toast.success("Loan data refreshed");
+    } catch (error) {
+      console.error("❌ Error refreshing loan data:", error);
+      toast.error("Failed to refresh data");
+    }
+  };
+
   const items = [
     {
       key: "1",
       label: "Disbursed Loans",
-      children: <Loans />,
+      children: <Loans refreshTrigger={refreshTrigger} />,
     },
     {
       key: "2",
       label: "Loan Applications",
-      children: <Loanapp />,
+      children: <Loanapp refreshTrigger={refreshTrigger} onStatusUpdate={refreshAllLoanData} />,
     },
     {
       key: "3",
       label: "Repayment History",
-      children: <RepaymentHistory />,
+      children: <RepaymentHistory refreshTrigger={refreshTrigger} />,
     },
     {
       key: "4",
       label: "Admin Repayment Management",
-      children: <AdminRepaymentManagement />,
+      children: <AdminRepaymentManagement refreshTrigger={refreshTrigger} />,
     }
     ];
 
@@ -137,14 +169,68 @@ function Loan() {
     loan_status: "",
   });
 
+  // Loan Calculator Functions
+  const calculateLoanRepayment = () => {
+    const amount = parseFloat(calculator.loanAmount);
+    const term = parseInt(calculator.loanTerm);
+
+    if (!amount || !term || amount <= 0 || term <= 0) {
+      toast.error("Please enter valid loan amount and term");
+      return;
+    }
+
+    const monthlyPrincipal = amount / term;
+    const schedule = [];
+    let remainingBalance = amount;
+    let totalInterest = 0;
+
+    for (let month = 1; month <= term; month++) {
+      const interestForMonth = remainingBalance * 0.01; // 1% interest
+      const totalMonthlyPayment = monthlyPrincipal + interestForMonth;
+
+      schedule.push({
+        month: month,
+        remainingBalance: remainingBalance,
+        principal: monthlyPrincipal,
+        interest: interestForMonth,
+        totalPayment: totalMonthlyPayment,
+        balanceAfterPayment: remainingBalance - monthlyPrincipal
+      });
+
+      remainingBalance -= monthlyPrincipal;
+      totalInterest += interestForMonth;
+    }
+
+    setCalculator(prev => ({
+      ...prev,
+      repaymentSchedule: schedule,
+      showCalculation: true,
+      totalInterest: totalInterest,
+      totalAmount: amount + totalInterest
+    }));
+  };
+
+  const resetCalculator = () => {
+    setCalculator({
+      loanAmount: "",
+      loanTerm: "",
+      showCalculation: false,
+      repaymentSchedule: []
+    });
+  };
+
   const fetchAllMember = async () => {
     setLoadingMembers(true);
     try {
       console.log("🔍 Fetching members for loan application form...");
-      const data = await memberServices.Allmembers();
+
+      const data = await Promise.race([
+        memberServices.Allmembers(),
+        new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 10000))
+      ]);
+
       console.log("📊 Members data received:", data);
       console.log("📊 Members count:", data?.length || 0);
-      console.log("📊 Sample member:", data?.[0]);
 
       if (data && Array.isArray(data) && data.length > 0) {
         setmembers(data);
@@ -154,10 +240,75 @@ function Loan() {
         setmembers([]);
       }
     } catch (error) {
-      console.error("❌ Error fetching members:", error);
+      console.error("❌ Error fetching members:", error.message);
       setmembers([]);
+      // Don't show error toast - page should still work without members initially
+      console.warn("⚠️ Members will be empty - can be fetched later");
     } finally {
       setLoadingMembers(false);
+    }
+  };
+
+  const fetchLoanStatistics = async () => {
+    try {
+      setLoanStats(prev => ({ ...prev, loading: true }));
+      console.log("🔄 Fetching loan statistics...");
+
+      // Fetch active loans count with timeout
+      let activeLoansResponse = [];
+      let applicationsResponse = [];
+
+      try {
+        activeLoansResponse = await Promise.race([
+          loanServices.getAllLoans(),
+          new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 10000))
+        ]);
+        console.log("✅ Active loans fetched:", activeLoansResponse?.length || 0);
+      } catch (error) {
+        console.warn("⚠️ Failed to fetch active loans:", error.message);
+        activeLoansResponse = [];
+      }
+
+      try {
+        applicationsResponse = await Promise.race([
+          loanapplicationservices.Allapplication(),
+          new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 10000))
+        ]);
+        console.log("✅ Applications fetched:", applicationsResponse?.length || 0);
+      } catch (error) {
+        console.warn("⚠️ Failed to fetch applications:", error.message);
+        applicationsResponse = [];
+      }
+
+      const activeLoans = Array.isArray(activeLoansResponse) ? activeLoansResponse.filter(loan => loan.status === 'active').length : 0;
+      const totalDisbursed = Array.isArray(activeLoansResponse)
+        ? activeLoansResponse.reduce((sum, loan) => sum + (parseFloat(loan.amount_disbursed) || 0), 0)
+        : 0;
+      const totalApplications = Array.isArray(applicationsResponse) ? applicationsResponse.length : 0;
+      const pendingApplications = Array.isArray(applicationsResponse)
+        ? applicationsResponse.filter(app => app.loan_status === 'pending').length
+        : 0;
+
+      setLoanStats({
+        activeLoans,
+        totalDisbursed,
+        totalApplications,
+        pendingApplications,
+        loading: false
+      });
+
+      console.log("✅ Loan statistics updated successfully");
+    } catch (error) {
+      console.error("❌ Error fetching loan statistics:", error);
+      setLoanStats({
+        activeLoans: 0,
+        totalDisbursed: 0,
+        totalApplications: 0,
+        pendingApplications: 0,
+        loading: false
+      });
+      // Don't show error toast for statistics - page should still work
+      console.warn("⚠️ Using default statistics values");
     }
   };
 
@@ -218,6 +369,8 @@ function Loan() {
         loan_purpose: "",
         loan_status: "",
       });
+      // Refresh loan statistics after successful submission
+      fetchLoanStatistics();
     }
   };
 
@@ -242,12 +395,72 @@ function Loan() {
         loan_repayment: "",
         total_interest: ""
       });
+      // Refresh loan statistics after successful disbursement
+      fetchLoanStatistics();
     }
   };
 
   useEffect(() => {
-    fetchAllMember();
+    const initializePage = async () => {
+      try {
+        setPageLoading(true);
+        setPageError(null);
+        console.log("🚀 Initializing loan page...");
+
+        // Run both functions concurrently but don't let them block the page
+        await Promise.allSettled([
+          fetchAllMember(),
+          fetchLoanStatistics()
+        ]);
+
+        console.log("✅ Loan page initialized successfully");
+      } catch (error) {
+        console.error("❌ Error initializing loan page:", error);
+        setPageError(error.message);
+      } finally {
+        setPageLoading(false);
+      }
+    };
+
+    initializePage();
   }, []);
+
+  // Show loading screen while page initializes
+  if (pageLoading) {
+    return (
+      <DashboardLayout>
+        <div className="p-6 flex items-center justify-center min-h-96">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+            <h2 className="text-xl font-semibold text-gray-700">Loading Loan Management...</h2>
+            <p className="text-gray-500 mt-2">Please wait while we fetch your data</p>
+          </div>
+        </div>
+      </DashboardLayout>
+    );
+  }
+
+  // Show error screen if page failed to load
+  if (pageError) {
+    return (
+      <DashboardLayout>
+        <div className="p-6 flex items-center justify-center min-h-96">
+          <div className="text-center">
+            <div className="text-red-500 text-6xl mb-4">⚠️</div>
+            <h2 className="text-xl font-semibold text-red-700">Failed to Load Loan Management</h2>
+            <p className="text-gray-600 mt-2 mb-4">Error: {pageError}</p>
+            <Button
+              type="primary"
+              onClick={() => window.location.reload()}
+              className="bg-blue-600 hover:bg-blue-700"
+            >
+              🔄 Reload Page
+            </Button>
+          </div>
+        </div>
+      </DashboardLayout>
+    );
+  }
 
   return (
     <DashboardLayout>
@@ -266,9 +479,10 @@ function Loan() {
             <Card className="bg-gradient-to-r from-blue-500 to-blue-600 text-white border-0 shadow-lg hover:shadow-xl transition-shadow">
               <Statistic
                 title={<span className="text-blue-100">Active Loans</span>}
-                value={25}
+                value={loanStats.loading ? 0 : loanStats.activeLoans}
                 prefix={<MdAccountBalance className="text-blue-200" />}
                 valueStyle={{ color: '#fff', fontSize: '1.3rem', fontWeight: 'bold' }}
+                loading={loanStats.loading}
               />
             </Card>
           </Col>
@@ -277,10 +491,11 @@ function Loan() {
             <Card className="bg-gradient-to-r from-green-500 to-green-600 text-white border-0 shadow-lg hover:shadow-xl transition-shadow">
               <Statistic
                 title={<span className="text-green-100">Total Disbursed</span>}
-                value={2500000}
+                value={loanStats.loading ? 0 : loanStats.totalDisbursed}
                 prefix={<MdPayment className="text-green-200" />}
                 valueStyle={{ color: '#fff', fontSize: '1.3rem', fontWeight: 'bold' }}
                 formatter={(value) => `₦${Number(value).toLocaleString()}`}
+                loading={loanStats.loading}
               />
             </Card>
           </Col>
@@ -289,9 +504,10 @@ function Loan() {
             <Card className="bg-gradient-to-r from-purple-500 to-purple-600 text-white border-0 shadow-lg hover:shadow-xl transition-shadow">
               <Statistic
                 title={<span className="text-purple-100">Applications</span>}
-                value={45}
+                value={loanStats.loading ? 0 : loanStats.totalApplications}
                 prefix={<MdAssignment className="text-purple-200" />}
                 valueStyle={{ color: '#fff', fontSize: '1.3rem', fontWeight: 'bold' }}
+                loading={loanStats.loading}
               />
             </Card>
           </Col>
@@ -300,13 +516,176 @@ function Loan() {
             <Card className="bg-gradient-to-r from-orange-500 to-orange-600 text-white border-0 shadow-lg hover:shadow-xl transition-shadow">
               <Statistic
                 title={<span className="text-orange-100">Pending</span>}
-                value={12}
+                value={loanStats.loading ? 0 : loanStats.pendingApplications}
                 prefix={<MdSchedule className="text-orange-200" />}
                 valueStyle={{ color: '#fff', fontSize: '1.3rem', fontWeight: 'bold' }}
+                loading={loanStats.loading}
               />
             </Card>
           </Col>
         </Row>
+
+        {/* Loan Repayment Calculator */}
+        <Card className="mb-6 shadow-lg border-0">
+          <div className="mb-4">
+            <h3 className="text-xl font-bold text-gray-800 flex items-center gap-2">
+              🧮 Loan Repayment Calculator
+              <Tag color="blue">1% Monthly Interest</Tag>
+            </h3>
+            <p className="text-gray-600 mt-1">Calculate loan repayment schedule with 1% interest on remaining balance</p>
+          </div>
+
+          <Row gutter={[24, 16]}>
+            {/* Calculator Input */}
+            <Col xs={24} lg={8}>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    💰 Loan Amount (₦)
+                  </label>
+                  <Input
+                    size="large"
+                    placeholder="Enter loan amount"
+                    value={calculator.loanAmount}
+                    onChange={(e) => setCalculator(prev => ({ ...prev, loanAmount: e.target.value }))}
+                    prefix="₦"
+                    type="number"
+                    className="rounded-lg"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    📅 Loan Term (Months)
+                  </label>
+                  <Select
+                    size="large"
+                    placeholder="Select loan term"
+                    value={calculator.loanTerm}
+                    onChange={(value) => setCalculator(prev => ({ ...prev, loanTerm: value }))}
+                    className="w-full"
+                    options={[
+                      { value: "3", label: "3 Months" },
+                      { value: "6", label: "6 Months" },
+                      { value: "9", label: "9 Months" },
+                      { value: "12", label: "12 Months" },
+                      { value: "18", label: "18 Months" },
+                      { value: "24", label: "24 Months" },
+                    ]}
+                  />
+                </div>
+
+                <div className="flex gap-2">
+                  <Button
+                    type="primary"
+                    size="large"
+                    onClick={calculateLoanRepayment}
+                    className="flex-1 bg-blue-600 hover:bg-blue-700"
+                    icon={<DollarOutlined />}
+                  >
+                    Calculate
+                  </Button>
+                  <Button
+                    size="large"
+                    onClick={resetCalculator}
+                    className="px-4"
+                  >
+                    Reset
+                  </Button>
+                </div>
+
+                {/* Example */}
+                <div className="p-3 bg-blue-50 rounded-lg">
+                  <p className="text-sm text-blue-800 font-medium">📝 Example:</p>
+                  <p className="text-xs text-blue-700 mt-1">
+                    ₦60,000 for 6 months = ₦10,000 monthly principal<br/>
+                    Month 1: ₦10,000 + ₦600 interest = ₦10,600<br/>
+                    Month 2: ₦10,000 + ₦500 interest = ₦10,500
+                  </p>
+                </div>
+              </div>
+            </Col>
+
+            {/* Calculation Summary */}
+            {calculator.showCalculation && (
+              <Col xs={24} lg={16}>
+                <div className="space-y-4">
+                  {/* Summary Cards */}
+                  <Row gutter={[16, 16]}>
+                    <Col xs={24} sm={8}>
+                      <Card className="bg-gradient-to-r from-green-500 to-green-600 text-white border-0">
+                        <Statistic
+                          title={<span className="text-green-100">Loan Amount</span>}
+                          value={parseFloat(calculator.loanAmount)}
+                          prefix="₦"
+                          valueStyle={{ color: '#fff', fontSize: '1.1rem', fontWeight: 'bold' }}
+                          formatter={(value) => `${Number(value).toLocaleString()}`}
+                        />
+                      </Card>
+                    </Col>
+                    <Col xs={24} sm={8}>
+                      <Card className="bg-gradient-to-r from-orange-500 to-orange-600 text-white border-0">
+                        <Statistic
+                          title={<span className="text-orange-100">Total Interest</span>}
+                          value={calculator.totalInterest}
+                          prefix="₦"
+                          valueStyle={{ color: '#fff', fontSize: '1.1rem', fontWeight: 'bold' }}
+                          formatter={(value) => `${Number(value).toLocaleString()}`}
+                        />
+                      </Card>
+                    </Col>
+                    <Col xs={24} sm={8}>
+                      <Card className="bg-gradient-to-r from-purple-500 to-purple-600 text-white border-0">
+                        <Statistic
+                          title={<span className="text-purple-100">Total Repayment</span>}
+                          value={calculator.totalAmount}
+                          prefix="₦"
+                          valueStyle={{ color: '#fff', fontSize: '1.1rem', fontWeight: 'bold' }}
+                          formatter={(value) => `${Number(value).toLocaleString()}`}
+                        />
+                      </Card>
+                    </Col>
+                  </Row>
+
+                  {/* Repayment Schedule Table */}
+                  <Card className="border border-gray-200">
+                    <div className="mb-3">
+                      <h4 className="text-lg font-semibold text-gray-800">📋 Repayment Schedule</h4>
+                      <p className="text-sm text-gray-600">Monthly breakdown with 1% interest on remaining balance</p>
+                    </div>
+
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-sm">
+                        <thead>
+                          <tr className="bg-gray-50 border-b">
+                            <th className="text-left p-3 font-semibold text-gray-700">Month</th>
+                            <th className="text-right p-3 font-semibold text-gray-700">Balance Before</th>
+                            <th className="text-right p-3 font-semibold text-gray-700">Principal</th>
+                            <th className="text-right p-3 font-semibold text-gray-700">Interest (1%)</th>
+                            <th className="text-right p-3 font-semibold text-gray-700">Total Payment</th>
+                            <th className="text-right p-3 font-semibold text-gray-700">Balance After</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {calculator.repaymentSchedule.map((payment, index) => (
+                            <tr key={index} className="border-b hover:bg-gray-50">
+                              <td className="p-3 font-medium text-blue-600">Month {payment.month}</td>
+                              <td className="p-3 text-right">₦{payment.remainingBalance.toLocaleString()}</td>
+                              <td className="p-3 text-right">₦{payment.principal.toLocaleString()}</td>
+                              <td className="p-3 text-right text-orange-600">₦{payment.interest.toLocaleString()}</td>
+                              <td className="p-3 text-right font-semibold text-green-600">₦{payment.totalPayment.toLocaleString()}</td>
+                              <td className="p-3 text-right">₦{payment.balanceAfterPayment.toLocaleString()}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </Card>
+                </div>
+              </Col>
+            )}
+          </Row>
+        </Card>
 
         {/* Action Bar */}
         <Card className="mb-6 shadow-md">
@@ -340,6 +719,14 @@ function Loan() {
                 size="large"
               >
                 New Application
+              </Button>
+
+              <Button
+                onClick={refreshAllLoanData}
+                className="bg-purple-600 hover:bg-purple-700 text-white"
+                size="large"
+              >
+                🔄 Refresh All Data
               </Button>
             </Space>
           </div>

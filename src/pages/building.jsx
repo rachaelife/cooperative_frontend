@@ -43,9 +43,11 @@ import {
   HomeOutlined
 } from '@ant-design/icons';
 import { Fade } from "react-awesome-reveal";
+import SimpleBuildingForm from "../components/SimpleBuildingForm";
 
 function Building() {
   const [open, setOPen] = useState(false);
+  const [simpleFormOpen, setSimpleFormOpen] = useState(false);
   const [members, setmembers] = useState([]);
   const [totalbuilding, setTotalbuilding] = useState(0)
 
@@ -112,7 +114,7 @@ function Building() {
     amount: "",
     month_paid: "",
     payment_type: "",
-    savings_type: "",
+    savings_type: "building",
   });
 
   const fetchAllMember = async () => {
@@ -136,12 +138,21 @@ function Building() {
     }
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    console.log("Submitting savings data:", newSavings);
 
+
+
+
+  const handleSubmit = async (e) => {
     try {
-      await savingServices.addsavings(
+      e.preventDefault();
+
+      // Basic validation
+      if (!newSavings.user_id || !newSavings.amount || !newSavings.month_paid || !newSavings.payment_type) {
+        toast.error("Please fill in all required fields");
+        return;
+      }
+
+      const result = await savingServices.addSavings(
         newSavings.user_id,
         newSavings.amount,
         newSavings.month_paid,
@@ -154,11 +165,14 @@ function Building() {
         amount: "",
         month_paid: "",
         payment_type: "",
-        savings_type: "",
+        savings_type: "building",
       });
+      setOPen(false);
       fetchbuildings();
+      toast.success("Building savings added successfully!");
     } catch (error) {
-      toast.error("Failed to add savings");
+      console.error("Error adding building savings:", error);
+      toast.error("Failed to add building savings");
     }
   };
 
@@ -244,6 +258,15 @@ function Building() {
               >
                 Add Building Contribution
               </Button>
+              <Button
+                onClick={() => setSimpleFormOpen(true)}
+                className="bg-blue-600 hover:bg-blue-700 text-white"
+                size="large"
+              >
+                🧪 Simple Test Form
+              </Button>
+
+
             </Space>
           </div>
         </Card>
@@ -320,13 +343,21 @@ function Building() {
                         </div>
                       ),
                       value: member.user_id,
+                      searchText: member.fullname, // Add searchable text
                     }))}
                     onSelect={(value, option) => {
-                      setMember(option.label);
+                      setMember(option.searchText);
                       setNewSavings({ ...newSavings, user_id: value });
                     }}
+                    onChange={(value) => {
+                      setMember(value);
+                      const matchingMember = members.find(m => m.fullname === value);
+                      if (matchingMember) {
+                        setNewSavings({ ...newSavings, user_id: matchingMember.user_id });
+                      }
+                    }}
                     filterOption={(inputValue, option) =>
-                      option.label.toLowerCase().includes(inputValue.toLowerCase())
+                      option.searchText?.toLowerCase().includes(inputValue.toLowerCase())
                     }
                   />
                 </div>
@@ -580,6 +611,13 @@ function Building() {
             className="custom-table"
           />
         </Card>
+
+        {/* Simple Test Form */}
+        <SimpleBuildingForm
+          visible={simpleFormOpen}
+          onClose={() => setSimpleFormOpen(false)}
+          onSuccess={() => fetchbuildings()}
+        />
       </div>
     </DashboardLayout>
   );
